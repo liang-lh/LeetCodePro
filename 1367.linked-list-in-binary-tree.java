@@ -32,15 +32,20 @@
 class Solution {
     public boolean isSubPath(ListNode head, TreeNode root) {
         if (root == null) return false;
-        // Check match starting at current node, left, or right
-        return checkPath(head, root) || isSubPath(head, root.left) || isSubPath(head, root.right);
+        // Check if path starts from current node OR from left subtree OR from right subtree
+        return dfs(head, root) || isSubPath(head, root.left) || isSubPath(head, root.right);
     }
-    // Helper to check if path from root matches the linked list
-    private boolean checkPath(ListNode head, TreeNode node) {
+    
+    private boolean dfs(ListNode head, TreeNode root) {
+        // If we've matched all nodes in the list, return true
         if (head == null) return true;
-        if (node == null) return false;
-        if (head.val != node.val) return false;
-        return checkPath(head.next, node.left) || checkPath(head.next, node.right);
+        // If tree node is null but list is not empty, no match
+        if (root == null) return false;
+        // Check if current values match AND either left or right path continues the match
+        if (head.val == root.val) {
+            return dfs(head.next, root.left) || dfs(head.next, root.right);
+        }
+        return false;
     }
 }
 # @lc code=end
