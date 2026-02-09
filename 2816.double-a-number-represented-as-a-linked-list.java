@@ -5,47 +5,45 @@
 #
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* public class ListNode {
-*     int val;
-*     ListNode next;
-*     ListNode() {}
-*     ListNode(int val) { this.val = val; }
-*     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
-* }
-*/
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
 class Solution {
     public ListNode doubleIt(ListNode head) {
-        // Step 2: Reverse the linked list
-        head = reverseList(head);
-        // Step 3: Double each digit and handle carry
-        ListNode curr = head;
-        int carry = 0;
-        ListNode prev = null;
-        while (curr != null) {
-            int sum = curr.val * 2 + carry;
-            curr.val = sum % 10;
-            carry = sum / 10;
-            prev = curr;
-            curr = curr.next;
-        }
-        // Step 4: If there is a carry left, add a new node
+        int carry = doubleHelper(head);
+        
+        // If there's a carry after processing the head, create a new head
         if (carry > 0) {
-            prev.next = new ListNode(carry);
+            ListNode newHead = new ListNode(carry);
+            newHead.next = head;
+            return newHead;
         }
-        // Step 5: Reverse back to restore original order
-        return reverseList(head);
+        
+        return head;
     }
-    // Helper function to reverse a singly-linked list
-    private ListNode reverseList(ListNode head) {
-        ListNode prev = null;
-        while (head != null) {
-            ListNode next = head.next;
-            head.next = prev;
-            prev = head;
-            head = next;
+    
+    private int doubleHelper(ListNode node) {
+        if (node == null) {
+            return 0;
         }
-        return prev;
+        
+        // Recursively get carry from the right side
+        int carry = doubleHelper(node.next);
+        
+        // Double current value and add carry from right
+        int doubled = node.val * 2 + carry;
+        
+        // Update current node value (keep only the ones digit)
+        node.val = doubled % 10;
+        
+        // Return carry to the left (the tens digit)
+        return doubled / 10;
     }
 }
 # @lc code=end
