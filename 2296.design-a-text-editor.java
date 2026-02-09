@@ -3,72 +3,56 @@
 #
 # [2296] Design a Text Editor
 #
-
 # @lc code=start
-import java.util.*;
-
 class TextEditor {
-    private Deque<Character> leftStack;
-    private Deque<Character> rightStack;
-
+    private StringBuilder left;
+    private StringBuilder right;
+    
     public TextEditor() {
-        leftStack = new ArrayDeque<>();
-        rightStack = new ArrayDeque<>();
+        left = new StringBuilder();
+        right = new StringBuilder();
     }
-
+    
     public void addText(String text) {
-        for (char c : text.toCharArray()) {
-            leftStack.push(c);
-        }
+        left.append(text);
     }
-
+    
     public int deleteText(int k) {
-        int count = 0;
-        while (k > 0 && !leftStack.isEmpty()) {
-            leftStack.pop();
-            count++;
-            k--;
-        }
-        return count;
+        int deleted = Math.min(k, left.length());
+        left.setLength(left.length() - deleted);
+        return deleted;
     }
-
+    
     public String cursorLeft(int k) {
-        while (k > 0 && !leftStack.isEmpty()) {
-            rightStack.push(leftStack.pop());
-            k--;
+        int moves = Math.min(k, left.length());
+        for (int i = 0; i < moves; i++) {
+            right.append(left.charAt(left.length() - 1));
+            left.setLength(left.length() - 1);
         }
-        return getLast10();
+        return getLastChars();
     }
-
+    
     public String cursorRight(int k) {
-        while (k > 0 && !rightStack.isEmpty()) {
-            leftStack.push(rightStack.pop());
-            k--;
+        int moves = Math.min(k, right.length());
+        for (int i = 0; i < moves; i++) {
+            left.append(right.charAt(right.length() - 1));
+            right.setLength(right.length() - 1);
         }
-        return getLast10();
+        return getLastChars();
     }
-
-    private String getLast10() {
-        StringBuilder sb = new StringBuilder();
-        Iterator<Character> it = leftStack.iterator();
-        ArrayList<Character> temp = new ArrayList<>();
-        while (it.hasNext()) {
-            temp.add(it.next());
-        }
-        int start = Math.max(0, temp.size() - 10);
-        for (int i = start; i < temp.size(); i++) {
-            sb.append(temp.get(i));
-        }
-        return sb.toString();
+    
+    private String getLastChars() {
+        int len = Math.min(10, left.length());
+        return left.substring(left.length() - len);
     }
 }
 
 /**
-* Your TextEditor object will be instantiated and called as such:
-* TextEditor obj = new TextEditor();
-* obj.addText(text);
-* int param_2 = obj.deleteText(k);
-* String param_3 = obj.cursorLeft(k);
-* String param_4 = obj.cursorRight(k);
-*/
+ * Your TextEditor object will be instantiated and called as such:
+ * TextEditor obj = new TextEditor();
+ * obj.addText(text);
+ * int param_2 = obj.deleteText(k);
+ * String param_3 = obj.cursorLeft(k);
+ * String param_4 = obj.cursorRight(k);
+ */
 # @lc code=end
