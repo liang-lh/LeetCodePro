@@ -1,0 +1,1 @@
+Write the complete working code that solves this specific problem. Ensure it handles all test cases and follows the exact template format provided.
