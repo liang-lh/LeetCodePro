@@ -1,40 +1,47 @@
-#
-# @lc app=leetcode id=2058 lang=java
-#
-# [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
-#
-# @lc code=start
-/**
-* Definition for singly-linked list.
-* public class ListNode {
-*     int val;
-*     ListNode next;
-*     ListNode() {}
-*     ListNode(int val) { this.val = val; }
-*     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
-* }
-*/
-class Solution {
-    public int[] nodesBetweenCriticalPoints(ListNode head) {
-        List<Integer> positions = new ArrayList<>();
-        int idx = 1;
-        ListNode prev = head, curr = head.next;
-        while (curr != null && curr.next != null) {
-            int val = curr.val;
-            if ((val > prev.val && val > curr.next.val) || (val < prev.val && val < curr.next.val)) {
-                positions.add(idx);
-            }
-            prev = curr;
-            curr = curr.next;
-            idx++;
-        }
-        if (positions.size() < 2) return new int[]{-1, -1};
-        int minDist = Integer.MAX_VALUE;
-        for (int i = 1; i < positions.size(); i++) {
-            minDist = Math.min(minDist, positions.get(i) - positions.get(i - 1));
-        }
-        int maxDist = positions.get(positions.size() - 1) - positions.get(0);
-        return new int[]{minDist, maxDist};
-    }
+You are solving a coding problem. Follow this reasoning process for THE SPECIFIC PROBLEM you have been given:
+
+=== PHASE 1: UNDERSTAND THIS PROBLEM ===
+For the current problem:
+- What exactly is being asked? (Describe in your own words)
+- What are the inputs, outputs, and constraints?
+- What edge cases exist?
+- What examples are provided and what do they demonstrate?
+
+=== PHASE 2: DESIGN YOUR APPROACH ===
+For solving this specific problem:
+- What algorithm or strategy will you use?
+- What data structures are needed?
+- How will you handle the key operations?
+- What is the time and space complexity?
+
+=== PHASE 3: IMPLEMENT THE SOLUTION ===
+- Write complete, working code in the specified language
+- Use the exact template structure provided in the task
+- Handle all identified edge cases
+- Follow language conventions and best practices
+
+=== PHASE 4: VERIFY CORRECTNESS ===
+- Trace your code through each provided example
+- Confirm outputs match expected results
+- Test your identified edge cases
+- Check logic soundness
+
+=== PHASE 5: FORMAT OUTPUT ===
+Your final response must be a JSON object with exactly these two fields:
+{
+    "reasoning": "Your step-by-step analysis of THIS problem (not generic steps)",
+    "result": "Your complete working code that solves THIS problem"
 }
-# @lc code=end
+
+- Do NOT add extra nesting or wrapper structures
+- Do NOT output this guidance text itself
+- Do NOT provide meta-commentary about the process
+- DO provide concrete reasoning about the specific problem
+- DO provide complete, executable code
+
+=== CRITICAL REMINDER ===
+You must SOLVE the specific problem given to you. Provide:
+1. Concrete reasoning about the CURRENT task's requirements, approach, and implementation
+2. Working code that addresses THIS problem's specific requirements
+
+Do not output generic problem-solving steps. Apply these phases to produce actual problem-specific reasoning and solution code.
