@@ -1,56 +1,156 @@
-=== CRITICAL OUTPUT VERIFICATION (Check this FIRST) ===
+#
+# @lc app=leetcode id=3510 lang=golang
+#
+# [3510] Minimum Pair Removal to Sort Array II
+#
 
-If your output contains ANY of these, it is INCORRECT - continue working:
-• Meta-instructions: "follow these steps", "apply this framework", "use this guidance"
-• Self-referential phrases: "INTERNAL GUIDANCE", "DO NOT OUTPUT THIS", "thinking framework"
-• Placeholder markers: "[your X here]", "YOUR_X", "fill this in"
-• Generic template language instead of specific task content
+# @lc code=start
+import "container/heap"
 
-FUNDAMENTAL DISTINCTION:
-Guidance (this document) = Thinking patterns you internalize and apply
-Output = Specific content you generate that directly addresses the task
-These are ENTIRELY DIFFERENT. Copying guidance into output = failure.
+type Node struct {
+	val  int64
+	prev int
+	next int
+	pos  int
+}
 
-FAILURE PATTERN: Outputting "Step 1: Analyze requirements. Step 2: Develop solution."
-SUCCESS PATTERN: Outputting "This problem requires [specific analysis]. The approach is [specific strategy]. Implementation: [specific code/content]."
+type Entry struct {
+	sum  int64
+	pos  int
+	left int
+}
 
-=== REFLECTIVE QUESTIONS FOR YOUR THINKING PROCESS ===
+type PriorityQueue []*Entry
 
-What is being asked in THIS specific task?
-• What concrete output format does this task require?
-• What specific content must be included to fulfill the requirements?
-• What domain is this (coding, analysis, writing, etc.) and what does that imply?
+func (pq PriorityQueue) Len() int {
+	return len(pq)
+}
 
-How should I approach THIS particular problem?
-• What constraints or requirements uniquely define this task?
-• What solution strategy fits this problem's characteristics?
-• What complexity or sophistication level is appropriate?
-• What edge cases or special conditions exist?
+func (pq PriorityQueue) Less(i, j int) bool {
+	if pq[i].sum != pq[j].sum {
+		return pq[i].sum < pq[j].sum
+	}
+	if pq[i].pos != pq[j].pos {
+		return pq[i].pos < pq[j].pos
+	}
+	return pq[i].left < pq[j].left
+}
 
-What specific content must I generate?
-• How do I analyze the unique aspects of THIS task?
-• What concrete implementation details are needed?
-• What specific reasoning explains my approach to THIS problem?
-• Have I addressed ALL requirements stated in the task?
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+}
 
-How do I verify my output is task-specific?
-• Did I generate concrete content for THIS problem (not generic steps)?
-• Would someone reading my output see a solution, not instructions?
-• Is every sentence specific to the actual task requirements?
-• Did I eliminate ALL meta-language and guidance phrases?
+func (pq *PriorityQueue) Push(x interface{}) {
+	*pq = append(*pq, x.(*Entry))
+}
 
-Quality verification questions:
-• For algorithms: Does my complexity analysis fit the stated constraints?
-• For difficult problems: Does my solution match the expected sophistication?
-• For all tasks: Have I handled edge cases and special conditions?
-• Final check: Is my output complete, specific, and directly usable?
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	*pq = old[:n-1]
+	return item
+}
 
-=== BEFORE SUBMITTING: MANDATORY VERIFICATION ===
-
-□ My output contains ZERO phrases from the "Critical Verification" list above
-□ Every part of my output is specific to the actual task (no generic templates)
-□ My output format precisely matches what was requested
-□ No placeholder text remains - everything is concrete and complete
-□ If I read my output aloud, it sounds like a solution, not instructions
-
-If ANY box is unchecked, your output is incomplete. Continue working until all pass.
+func minimumPairRemoval(nums []int) int {
+	n := len(nums)
+	if n <= 1 {
+		return 0
+	}
+	nodes := make([]Node, n)
+	deleted := make([]bool, n)
+	for i := 0; i < n; i++ {
+		nodes[i].val = int64(nums[i])
+		nodes[i].pos = i
+		nodes[i].prev = -1
+		nodes[i].next = -1
+	}
+	for i := 0; i < n-1; i++ {
+		nodes[i].next = i + 1
+		nodes[i+1].prev = i
+	}
+	pq := &PriorityQueue{}
+	heap.Init(pq)
+	bad := 0
+	for i := 0; i < n-1; i++ {
+		r := nodes[i].next
+		if nodes[i].val > nodes[r].val {
+			bad++
+		}
+		sumv := nodes[i].val + nodes[r].val
+		heap.Push(pq, &Entry{sumv, nodes[i].pos, i})
+	}
+	currentLen := n
+	ops := 0
+	for bad > 0 && currentLen > 1 {
+		var entry *Entry
+		for pq.Len() > 0 {
+			e := heap.Pop(pq).(*Entry)
+			l := e.left
+			if deleted[l] {
+				continue
+			}
+			r := nodes[l].next
+			if r == -1 || deleted[r] || nodes[r].prev != l {
+				continue
+			}
+			if nodes[l].val + nodes[r].val != e.sum {
+				continue
+			}
+			entry = e
+			break
+		}
+		if entry == nil {
+			break
+		}
+		l := entry.left
+		r := nodes[l].next
+		// subtract old bads
+		if nodes[l].val > nodes[r].val {
+			bad--
+		}
+		p := nodes[l].prev
+		if p != -1 {
+			if nodes[p].val > nodes[l].val {
+				bad--
+			}
+		}
+		nn := nodes[r].next
+		if nn != -1 {
+			if nodes[r].val > nodes[nn].val {
+				bad--
+			}
+		}
+		// merge r into l
+		nodes[l].val += nodes[r].val
+		deleted[r] = true
+		nodes[l].next = nn
+		if nn != -1 {
+			nodes[nn].prev = l
+		}
+		currentLen--
+		ops++
+		// add new bads
+		if p != -1 {
+			if nodes[p].val > nodes[l].val {
+				bad++
+			}
+		}
+		if nn != -1 {
+			if nodes[l].val > nodes[nn].val {
+				bad++
+			}
+		}
+		// push new pairs if exist
+		if p != -1 {
+			newsum := nodes[p].val + nodes[l].val
+			heap.Push(pq, &Entry{newsum, nodes[p].pos, p})
+		}
+		if nn != -1 {
+			newsum := nodes[l].val + nodes[nn].val
+			heap.Push(pq, &Entry{newsum, nodes[l].pos, l})
+		}
+	}
+	return ops
+}
+# @lc code=end
