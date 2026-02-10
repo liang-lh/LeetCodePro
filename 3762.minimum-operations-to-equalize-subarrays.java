@@ -14,7 +14,7 @@ class Solution {
             int l = queries[q][0];
             int r = queries[q][1];
             
-            // Check if all elements have the same remainder mod k
+            // Check if all elements in subarray have same remainder mod k
             int remainder = nums[l] % k;
             boolean possible = true;
             
@@ -30,27 +30,24 @@ class Solution {
                 continue;
             }
             
-            // If subarray has only one element
+            // If only one element, no operations needed
             if (l == r) {
                 result[q] = 0;
                 continue;
             }
             
-            // Extract subarray and sort to find median
-            int len = r - l + 1;
-            int[] subarray = new int[len];
-            for (int i = 0; i < len; i++) {
-                subarray[i] = nums[l + i];
+            // Find the median as the target
+            int[] subarray = new int[r - l + 1];
+            for (int i = l; i <= r; i++) {
+                subarray[i - l] = nums[i];
             }
             Arrays.sort(subarray);
+            int median = subarray[(r - l) / 2];
             
-            // Use median as target
-            int median = subarray[len / 2];
-            
-            // Calculate total operations
+            // Calculate minimum operations
             long operations = 0;
             for (int i = l; i <= r; i++) {
-                operations += (long) Math.abs(nums[i] - median) / k;
+                operations += Math.abs(nums[i] - median) / k;
             }
             
             result[q] = operations;
