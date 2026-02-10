@@ -4,41 +4,44 @@
 # [3605] Minimum Stability Factor of Array
 #
 # @lc code=start
+import java.util.*;
+
 class Solution {
     public int minStable(int[] nums, int maxC) {
         int n = nums.length;
         
         // Binary search on the answer
         int left = 0, right = n;
-        int answer = n;
         
-        while (left <= right) {
+        while (left < right) {
             int mid = (left + right) / 2;
             if (canAchieve(nums, maxC, mid)) {
-                answer = mid;
-                right = mid - 1;
+                right = mid;
             } else {
                 left = mid + 1;
             }
         }
         
-        return answer;
+        return left;
     }
     
-    boolean canAchieve(int[] nums, int maxC, int k) {
-        int n = nums.length;
+    private boolean canAchieve(int[] nums, int maxC, int target) {
+        List<int[]> intervals = findMaximalStableIntervals(nums);
+        int mods = 0;
         
-        if (k >= n) return true;
-        
-        if (k == 0) {
-            int count = 0;
-            for (int num : nums) {
-                if (num >= 2) count++;
+        for (int[] interval : intervals) {
+            int len = interval[1] - interval[0] + 1;
+            if (len > target) {
+                mods += len / (target + 1);
             }
-            return count <= maxC;
         }
         
-        int changes = 0;
+        return mods <= maxC;
+    }
+    
+    private List<int[]> findMaximalStableIntervals(int[] nums) {
+        List<int[]> intervals = new ArrayList<>();
+        int n = nums.length;
         int i = 0;
         
         while (i < n) {
@@ -47,30 +50,22 @@ class Solution {
                 continue;
             }
             
-            // Find maximal stable subarray starting at i
             int j = i;
             int gcd = nums[i];
-            while (j < n && gcd >= 2) {
-                if (j > i) {
-                    gcd = gcd(gcd, nums[j]);
-                }
-                if (gcd < 2) break;
+            
+            while (j + 1 < n && gcd(gcd, nums[j + 1]) >= 2) {
                 j++;
-            }
-            j--;
-            
-            int len = j - i + 1;
-            if (len > k) {
-                changes += len / (k + 1);
+                gcd = gcd(gcd, nums[j]);
             }
             
+            intervals.add(new int[]{i, j});
             i = j + 1;
         }
         
-        return changes <= maxC;
+        return intervals;
     }
     
-    int gcd(int a, int b) {
+    private int gcd(int a, int b) {
         while (b != 0) {
             int temp = b;
             b = a % b;
