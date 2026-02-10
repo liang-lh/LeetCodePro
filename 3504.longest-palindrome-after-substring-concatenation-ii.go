@@ -1,21 +1,193 @@
-**CRITICAL - Your Role**: You are solving THIS specific problem instance. Your output must contain the actual solution (executable code, calculations, answers) for THIS problem. Do NOT output these guidance steps or discuss problem-solving methodology.
+#
+# @lc app=leetcode id=3504 lang=golang
+#
+# [3504] Longest Palindrome After Substring Concatenation II
+#
 
-**Step 1 - Extract Problem Requirements**: Identify: What are the input types and constraints? What is the expected output format? What operation/transformation is required? State these for THIS problem.
+# @lc code=start
+func longestPalindrome(s string, t string) int {
 
-**Step 2 - Analyze Key Constraints**: Look at the constraint values (e.g., array size limits, value ranges). Calculate: What is the maximum number of operations your algorithm might perform? Will an O(n²) approach timeout on maximum input?
+	type Hpair struct {
+		F1 uint64
+		F2 uint64
+	}
 
-**Step 3 - Complexity Validation**: For each potential approach, compute operations with ACTUAL constraint values. Example: If n ≤ 1000 and you have nested loops over n, that's 1000 × 1000 = 10^6 operations (acceptable). If n ≤ 10^5 and you have O(n³), that's 10^15 operations (timeout). Choose approach that stays under 10^8-10^9 operations.
+	const (
+		BASE1 uint64 = 131
+		BASE2 uint64 = 137
+	)
 
-**Step 4 - Design Algorithm**: Outline the specific algorithm for THIS problem: What data structures do you need? What is the main loop logic? How do you build the result? Write concrete steps, not generic placeholders.
+	max := func(a, b int) int {
+		if a > b {
+			return a
+		}
+		return b
+	}
 
-**Step 5 - Trace One Example**: Take Example 1 or Example 2 from the problem. Manually execute your algorithm step by step with those exact values. Write down variable states at each step. Verify your traced result matches the expected output.
+	var reverse func(string) string = func(str string) string {
+		bs := []byte(str)
+		i, j := 0, len(bs)-1
+		for i < j {
+			bs[i], bs[j] = bs[j], bs[i]
+			i++
+			j--
+		}
+		return string(bs)
+	}
 
-**Step 6 - Implement Executable Code**: Write the actual function code in the required language. Fill in the template with working logic - no placeholders like 'implement logic here' or '[code]'. Every line must be valid syntax that performs the algorithm you designed.
+	compute_prefix := func(str string, base uint64) ([]uint64, []uint64) {
+		n := len(str)
+		pre := make([]uint64, n+1)
+		pwr := make([]uint64, n+1)
+		pwr[0] = 1
+		for i := 0; i < n; i++ {
+			pre[i+1] = pre[i]*base + uint64(str[i]-'a'+1)
+			pwr[i+1] = pwr[i] * base
+		}
+		return pre, pwr
+	}
 
-**Step 7 - Output Validation (MANDATORY)**: Before submitting, explicitly verify:
-- Does my 'result' field contain actual executable code in the required language?
-- OR does it contain: framework steps, placeholders, generic descriptions, meta-commentary?
-- If the latter, STOP and generate the actual code.
-- Check: Can this code be copied and run directly? If no, it's not actual code.
+	geth := func(pre, pwr []uint64, l, r int) uint64 {
+		return pre[r+1] - pre[l]*pwr[r-l+1]
+	}
 
-**Step 8 - Instance Check**: Confirm: I am solving the problem described above (problem #{{PROBLEM_ID}} about {{PROBLEM_TOPIC}}). My solution handles the specific inputs and produces the specific outputs for THIS problem. I am not discussing general methodology.
+	palDP := func(str string) ([]int, []int, int) {
+		n := len(str)
+		dp := make([][]bool, n)
+		for i := range dp {
+			dp[i] = make([]bool, n)
+		}
+		maxlps := 0
+		for i := 0; i < n; i++ {
+			dp[i][i] = true
+			maxlps = 1
+		}
+		for i := 0; i < n-1; i++ {
+			if str[i] == str[i+1] {
+				dp[i][i+1] = true
+				maxlps = 2
+			}
+		}
+		for leng := 3; leng <= n; leng++ {
+			for i := 0; i <= n-leng; i++ {
+				j := i + leng - 1
+				if str[i] == str[j] && dp[i+1][j-1] {
+					dp[i][j] = true
+					maxlps = leng
+				}
+			}
+		}
+
+		startm := make([]int, n)
+		endm := make([]int, n)
+		for p := 0; p < n; p++ {
+			startm[p] = 1
+			for q := p; q < n; q++ {
+				if dp[p][q] {
+					startm[p] = q - p + 1
+				}
+			}
+		}
+		for j := 0; j < n; j++ {
+			endm[j] = 1
+			for ii := j; ii >= 0; ii-- {
+				if dp[ii][j] {
+					endm[j] = j - ii + 1
+				}
+			}
+		}
+
+		return startm, endm, maxlps
+	}
+
+	n, m := len(s), len(t)
+	if n == 0 && m == 0 {
+		return 0
+	}
+
+	start_s, end_s, lps_s := palDP(s)
+	start_t, end_t, lps_t := palDP(t)
+
+	ans := max(lps_s, lps_t)
+
+	// hashes for s
+	pre_s1, pwr_s1 := compute_prefix(s, BASE1)
+	pre_s2, pwr_s2 := compute_prefix(s, BASE2)
+
+	// hashes for t
+	pre_t1, pwr_t1 := compute_prefix(t, BASE1)
+	pre_t2, pwr_t2 := compute_prefix(t, BASE2)
+
+	s_subs := make(map[int]map[Hpair]struct{})
+	t_subs := make(map[int]map[Hpair]struct{})
+
+	for kk := 1; kk <= n; kk++ {
+		s_subs[kk] = make(map[Hpair]struct{})
+		for st := 0; st <= n-kk; st++ {
+			h1 := geth(pre_s1, pwr_s1, st, st+kk-1)
+			h2 := geth(pre_s2, pwr_s2, st, st+kk-1)
+			s_subs[kk][Hpair{h1, h2}] = struct{}{}
+		}
+	}
+
+	for kk := 1; kk <= m; kk++ {
+		t_subs[kk] = make(map[Hpair]struct{})
+		for st := 0; st <= m-kk; st++ {
+			h1 := geth(pre_t1, pwr_t1, st, st+kk-1)
+			h2 := geth(pre_t2, pwr_t2, st, st+kk-1)
+			t_subs[kk][Hpair{h1, h2}] = struct{}{}
+		}
+	}
+
+	rs := reverse(s)
+	rt := reverse(t)
+
+	pre_rs1, pwr_rs1 := compute_prefix(rs, BASE1)
+	pre_rs2, pwr_rs2 := compute_prefix(rs, BASE2)
+
+	pre_rt1, pwr_rt1 := compute_prefix(rt, BASE1)
+	pre_rt2, pwr_rt2 := compute_prefix(rt, BASE2)
+
+	// Case 1: extend in s, lenL >= k = lenR
+	for a := 0; a < n; a++ {
+		for kk := 1; kk <= n-a; kk++ {
+			st := n - a - kk
+			h1 := geth(pre_rs1, pwr_rs1, st, st+kk-1)
+			h2 := geth(pre_rs2, pwr_rs2, st, st+kk-1)
+			hp := Hpair{h1, h2}
+			if tsub, ok := t_subs[kk]; ok {
+				if _, has := tsub[hp]; has {
+					p := a + kk
+					var len_pal int
+					if p < n {
+						len_pal = start_s[p]
+					} // else 0
+					ans = max(ans, 2*kk + len_pal)
+				}
+			}
+		}
+	}
+
+	// Case 2: extend in t, lenR >= k = lenL
+	for e := 0; e < m; e++ {
+		for kk := 1; kk <= e+1; kk++ {
+			st_rt := m - 1 - e
+			h1 := geth(pre_rt1, pwr_rt1, st_rt, st_rt+kk-1)
+			h2 := geth(pre_rt2, pwr_rt2, st_rt, st_rt+kk-1)
+			hp := Hpair{h1, h2}
+			if ssub, ok := s_subs[kk]; ok {
+				if _, has := ssub[hp]; has {
+					pos := e - kk
+					var len_pal int
+					if pos >= 0 {
+						len_pal = end_t[pos]
+					} // else 0
+					ans = max(ans, 2*kk + len_pal)
+				}
+			}
+		}
+	}
+
+	return ans
+}
+# @lc code=end
