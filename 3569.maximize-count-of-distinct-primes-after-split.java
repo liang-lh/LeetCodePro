@@ -1,0 +1,1 @@
+Before submitting your solution, verify: Does your 'result' field contain the actual deliverable (working code for coding tasks, complete analysis for analysis tasks, final answer for reasoning tasks)? If your result field contains process descriptions, frameworks, or instructions about how to solve problems, you must replace it with the genuine solution.
