@@ -1,60 +1,84 @@
-//
-// @lc app=leetcode id=1670 lang=golang
-//
-// [1670] Design Front Middle Back Queue
-//
-// @lc code=start
+#
+# @lc app=leetcode id=1670 lang=golang
+#
+# [1670] Design Front Middle Back Queue
+#
+
+# @lc code=start
+import "container/list"
+
 type FrontMiddleBackQueue struct {
-    queue []int
+	q *list.List
 }
+
 
 func Constructor() FrontMiddleBackQueue {
-    return FrontMiddleBackQueue{queue: []int{}}
+	return FrontMiddleBackQueue{list.New()}
 }
 
-func (this *FrontMiddleBackQueue) PushFront(val int) {
-    this.queue = append([]int{val}, this.queue...)
+
+func (this *FrontMiddleBackQueue) PushFront(val int)  {
+	this.q.PushFront(val)
 }
 
-func (this *FrontMiddleBackQueue) PushMiddle(val int) {
-    n := len(this.queue)
-    mid := n / 2
-    this.queue = append(this.queue[:mid], append([]int{val}, this.queue[mid:]...)...)
+
+func (this *FrontMiddleBackQueue) PushMiddle(val int)  {
+	if this.q.Len() == 0 {
+		this.q.PushFront(val)
+		return
+	}
+	n := this.q.Len()
+	pos := n / 2
+	it := this.q.Front()
+	for i := 0; i < pos; i++ {
+		it = it.Next()
+	}
+	this.q.InsertBefore(val, it)
 }
 
-func (this *FrontMiddleBackQueue) PushBack(val int) {
-    this.queue = append(this.queue, val)
+
+func (this *FrontMiddleBackQueue) PushBack(val int)  {
+	this.q.PushBack(val)
 }
+
 
 func (this *FrontMiddleBackQueue) PopFront() int {
-    if len(this.queue) == 0 {
-        return -1
-    }
-    val := this.queue[0]
-    this.queue = this.queue[1:]
-    return val
+	if this.q.Len() == 0 {
+		return -1
+	}
+	e := this.q.Front()
+	val := e.Value.(int)
+	this.q.Remove(e)
+	return val
 }
+
 
 func (this *FrontMiddleBackQueue) PopMiddle() int {
-    n := len(this.queue)
-    if n == 0 {
-        return -1
-    }
-    mid := (n - 1) / 2
-    val := this.queue[mid]
-    this.queue = append(this.queue[:mid], this.queue[mid+1:]...)
-    return val
+	n := this.q.Len()
+	if n == 0 {
+		return -1
+	}
+	pos := (n - 1) / 2
+	it := this.q.Front()
+	for i := 0; i < pos; i++ {
+		it = it.Next()
+	}
+	val := it.Value.(int)
+	this.q.Remove(it)
+	return val
 }
 
+
 func (this *FrontMiddleBackQueue) PopBack() int {
-    n := len(this.queue)
-    if n == 0 {
-        return -1
-    }
-    val := this.queue[n-1]
-    this.queue = this.queue[:n-1]
-    return val
+	if this.q.Len() == 0 {
+		return -1
+	}
+	e := this.q.Back()
+	val := e.Value.(int)
+	this.q.Remove(e)
+	return val
 }
+
 
 /**
  * Your FrontMiddleBackQueue object will be instantiated and called as such:
@@ -66,4 +90,4 @@ func (this *FrontMiddleBackQueue) PopBack() int {
  * param_5 := obj.PopMiddle();
  * param_6 := obj.PopBack();
  */
-// @lc code=end
+# @lc code=end
