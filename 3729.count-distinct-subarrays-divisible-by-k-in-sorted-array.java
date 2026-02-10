@@ -1,18 +1,32 @@
-BEFORE YOU BEGIN - Understand your task:
-You must produce a JSON object with two fields: "reasoning" (your analysis) and "result" (your code). This guidance below is NOT that output - it's the process to follow to CREATE that output.
+#
+# @lc app=leetcode id=3729 lang=java
+#
+# [3729] Count Distinct Subarrays Divisible by K in Sorted Array
+#
+# @lc code=start
+import java.util.HashSet;
+import java.util.Set;
 
---- Problem Analysis Phase ---
-Read the specific problem requirements. What are the inputs? What output is expected? What constraints exist? Calculate the worst-case scenario and determine what time/space complexity you need.
-
---- Solution Design Phase ---  
-Brainstorm 2-3 different approaches for THIS specific problem. For each, state complexity. Verify at least one meets the constraints. Choose the best and explain why.
-
---- Implementation Phase ---
-Write complete, executable code in the required language. Test it mentally against the provided examples. Check edge cases and verify it handles the constraints.
-
-FINAL VERIFICATION - Before outputting your JSON:
-- Does your "reasoning" field contain YOUR analysis of THIS problem (not this guide's text)?
-- Does your "result" field contain YOUR working code (not instructions)?
-- Is the code complete and would it execute?
-
-If you output this guide's text (BEFORE YOU BEGIN, Problem Analysis Phase, etc.), you have completely failed.
+class Solution {
+    public long numGoodSubarrays(int[] nums, int k) {
+        Set<String> distinctSubarrays = new HashSet<>();
+        int n = nums.length;
+        
+        for (int i = 0; i < n; i++) {
+            long sum = 0;
+            StringBuilder sb = new StringBuilder();
+            for (int j = i; j < n; j++) {
+                sum += nums[j];
+                if (j > i) sb.append(",");
+                sb.append(nums[j]);
+                
+                if (sum % k == 0) {
+                    distinctSubarrays.add(sb.toString());
+                }
+            }
+        }
+        
+        return distinctSubarrays.size();
+    }
+}
+# @lc code=end
