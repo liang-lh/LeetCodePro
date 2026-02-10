@@ -1,0 +1,1 @@
+Your complete implementation code as a plain code string that solves the specific problem given. This must be actual working code matching the provided template structure, not placeholder text or template instructions.
