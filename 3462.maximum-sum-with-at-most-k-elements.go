@@ -5,36 +5,36 @@
 #
 
 # @lc code=start
-import "sort"
-
 func maxSum(grid [][]int, limits []int, k int) int64 {
-    available := []int{}
-    
-    for i := 0; i < len(grid); i++ {
-        row := make([]int, len(grid[i]))
-        copy(row, grid[i])
-        sort.Sort(sort.Reverse(sort.IntSlice(row)))
-        
-        count := limits[i]
-        if count > len(row) {
-            count = len(row)
-        }
-        for j := 0; j < count; j++ {
-            available = append(available, row[j])
-        }
-    }
-    
-    sort.Sort(sort.Reverse(sort.IntSlice(available)))
-    
-    sum := int64(0)
-    count := k
-    if count > len(available) {
-        count = len(available)
-    }
-    for i := 0; i < count; i++ {
-        sum += int64(available[i])
-    }
-    
-    return sum
+	candidates := []int{}
+	n := len(grid)
+	for i := 0; i < n; i++ {
+		row := grid[i]
+		m := len(row)
+		rowCopy := make([]int, m)
+		copy(rowCopy, row)
+		sort.Slice(rowCopy, func(p, q int) bool {
+			return rowCopy[p] > rowCopy[q]
+		})
+		numTake := limits[i]
+		if numTake > m {
+			numTake = m
+		}
+		for j := 0; j < numTake; j++ {
+			candidates = append(candidates, rowCopy[j])
+		}
+	}
+	sort.Slice(candidates, func(p, q int) bool {
+		return candidates[p] > candidates[q]
+	})
+	sum := int64(0)
+	num := k
+	if num > len(candidates) {
+		num = len(candidates)
+	}
+	for i := 0; i < num; i++ {
+		sum += int64(candidates[i])
+	}
+	return sum
 }
 # @lc code=end
