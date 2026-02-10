@@ -1,0 +1,1 @@
+[Complete working Java code implementing the algorithm, matching the provided template structure with class Solution and method lexPalindromicPermutation]
