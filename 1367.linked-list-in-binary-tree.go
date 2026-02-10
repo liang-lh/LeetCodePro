@@ -22,14 +22,14 @@
  */
 func isSubPath(head *ListNode, root *TreeNode) bool {
     var check func(*TreeNode, *ListNode) bool
-    check = func(node *TreeNode, lis *ListNode) bool {
-        if lis == nil {
+    check = func(node *TreeNode, list *ListNode) bool {
+        if list == nil {
             return true
         }
-        if node == nil || node.Val != lis.Val {
+        if node == nil || node.Val != list.Val {
             return false
         }
-        return check(node.Left, lis.Next) || check(node.Right, lis.Next)
+        return check(node.Left, list.Next) || check(node.Right, list.Next)
     }
 
     var dfs func(*TreeNode) bool
@@ -37,7 +37,7 @@ func isSubPath(head *ListNode, root *TreeNode) bool {
         if node == nil {
             return false
         }
-        if node.Val == head.Val && check(node, head) {
+        if check(node, head) {
             return true
         }
         return dfs(node.Left) || dfs(node.Right)
