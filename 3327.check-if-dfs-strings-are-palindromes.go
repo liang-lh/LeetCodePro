@@ -7,109 +7,88 @@
 # @lc code=start
 import ("sort")
 
-const (
-	MOD1 uint64 = 1000000007
-	BASE1 uint64 = 131
-	MOD2 uint64 = 1000000009
-	BASE2 uint64 = 137
-)
-
 func findAnswer(parent []int, s string) []bool {
 	n := len(parent)
 	if n == 0 {
 		return []bool{}
 	}
+
 	children := make([][]int, n)
 	for i := 1; i < n; i++ {
-		p := parent[i]
-		children[p] = append(children[p], i)
+		children[parent[i]] = append(children[parent[i]], i)
 	}
-	for i := 0; i < n; i++ {
+
+	for i := range children {
 		sort.Ints(children[i])
 	}
 
 	pow1 := make([]uint64, n+1)
 	pow1[0] = 1
+	const base1 uint64 = 131
 	for i := 1; i <= n; i++ {
-		pow1[i] = (pow1[i-1] * BASE1) % MOD1
+		pow1[i] = pow1[i-1] * base1
 	}
 
 	pow2 := make([]uint64, n+1)
 	pow2[0] = 1
+	const base2 uint64 = 137
 	for i := 1; i <= n; i++ {
-		pow2[i] = (pow2[i-1] * BASE2) % MOD2
+		pow2[i] = pow2[i-1] * base2
 	}
 
 	sz := make([]int, n)
-	fwd1 := make([]uint64, n)
-	fwd2 := make([]uint64, n)
-	rev1 := make([]uint64, n)
-	rev2 := make([]uint64, n)
+	hfwd1 := make([]uint64, n)
+	hfwd2 := make([]uint64, n)
+	hrev1 := make([]uint64, n)
+	hrev2 := make([]uint64, n)
+	answer := make([]bool, n)
 
-	remaining := make([]int, n)
-	for i := 0; i < n; i++ {
-		remaining[i] = len(children[i])
+	pending := make([]int, n)
+	for i := range children {
+		pending[i] = len(children[i])
 	}
 
 	q := []int{}
-	qidx := 0
 	for i := 0; i < n; i++ {
-		if remaining[i] == 0 {
+		if pending[i] == 0 {
 			q = append(q, i)
 		}
 	}
 
-	answer := make([]bool, n)
+	qi := 0
+	for qi < len(q) {
+		u := q[qi]
+		qi++
 
-	for qidx < len(q) {
-		u := q[qidx]
-		qidx++
-
-		ch := uint64(s[u] - 'a' + 1)
-
-		numc := len(children[u])
-		child_len := 0
-
-		h1 := uint64(0)
-		h2 := uint64(0)
-
-		for i := 0; i < numc; i++ {
-			y := children[u][i]
-			subsz := sz[y]
-			child_len += subsz
-
-			h1 = (h1 * pow1[subsz] % MOD1 + fwd1[y]) % MOD1
-			h2 = (h2 * pow2[subsz] % MOD2 + fwd2[y]) % MOD2
+		var fwd1, fwd2 uint64 = 0, 0
+		childLen := 0
+		for _, c := range children[u] {
+			fwd1 = fwd1 * pow1[sz[c]] + hfwd1[c]
+			fwd2 = fwd2 * pow2[sz[c]] + hfwd2[c]
+			childLen += sz[c]
 		}
 
-		h1 = (h1 * pow1[1] % MOD1 + ch) % MOD1
-		h2 = (h2 * pow2[1] % MOD2 + ch) % MOD2
+		sz[u] = childLen + 1
+		val := uint64(s[u] - 'a' + 1)
+		hfwd1[u] = fwd1 * pow1[1] + val
+		hfwd2[u] = fwd2 * pow2[1] + val
 
-		fwd1[u] = h1
-		fwd2[u] = h2
-
-		rc1 := uint64(0)
-		rc2 := uint64(0)
-
-		for i := numc - 1; i >= 0; i-- {
-			y := children[u][i]
-			subsz := sz[y]
-			rc1 = (rc1 * pow1[subsz] % MOD1 + rev1[y]) % MOD1
-			rc2 = (rc2 * pow2[subsz] % MOD2 + rev2[y]) % MOD2
+		var rs1, rs2 uint64 = 0, 0
+		for j := len(children[u]) - 1; j >= 0; j-- {
+			c := children[u][j]
+			rs1 = rs1 * pow1[sz[c]] + hrev1[c]
+			rs2 = rs2 * pow2[sz[c]] + hrev2[c]
 		}
 
-		rev1[u] = (ch * pow1[child_len] % MOD1 + rc1) % MOD1
-		rev2[u] = (ch * pow2[child_len] % MOD2 + rc2) % MOD2
+		hrev1[u] = val * pow1[childLen] + rs1
+		hrev2[u] = val * pow2[childLen] + rs2
 
-		sz[u] = child_len + 1
+		answer[u] = hfwd1[u] == hrev1[u] && hfwd2[u] == hrev2[u]
 
-		answer[u] = fwd1[u] == rev1[u] && fwd2[u] == rev2[u]
-
-		p := parent[u]
-		if p != -1 {
-			remaining[p]--
-			if remaining[p] == 0 {
-				q = append(q, p)
+		if parent[u] != -1 {
+			pending[parent[u]]--
+			if pending[parent[u]] == 0 {
+				q = append(q, parent[u])
 			}
 		}
 	}
