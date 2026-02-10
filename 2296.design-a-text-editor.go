@@ -3,81 +3,82 @@
 #
 # [2296] Design a Text Editor
 #
+import (
+    "container/list"
+)
+
 # @lc code=start
 type TextEditor struct {
-    left  []rune  // characters to the left of cursor
-    right []rune  // characters to the right of cursor (reversed)
+    left  *list.List
+    right *list.List
 }
 
 
 func Constructor() TextEditor {
-    return TextEditor{
-        left:  []rune{},
-        right: []rune{},
-    }
+    return TextEditor{list.New(), list.New()}
 }
 
 
 func (this *TextEditor) AddText(text string)  {
-    for _, ch := range text {
-        this.left = append(this.left, ch)
+    for _, c := range text {
+        this.left.PushBack(c)
     }
 }
 
 
 func (this *TextEditor) DeleteText(k int) int {
-    deleted := min(k, len(this.left))
-    this.left = this.left[:len(this.left)-deleted]
+    deleted := 0
+    for k > 0 && this.left.Len() > 0 {
+        this.left.Remove(this.left.Back())
+        deleted++
+        k--
+    }
     return deleted
 }
 
 
-func (this *TextEditor) CursorLeft(k int) string {
-    moves := min(k, len(this.left))
-    for i := 0; i < moves; i++ {
-        ch := this.left[len(this.left)-1]
-        this.left = this.left[:len(this.left)-1]
-        this.right = append(this.right, ch)
+func (this *TextEditor) getLeft10() string {
+    res := []rune{}
+    cur := this.left.Back()
+    for i := 0; i < 10 && cur != nil; i++ {
+        res = append(res, cur.Value.(rune))
+        cur = cur.Prev()
     }
-    return this.getLastTenLeft()
+    for i, j := 0, len(res)-1; i < j; i, j = i+1, j-1 {
+        res[i], res[j] = res[j], res[i]
+    }
+    return string(res)
+}
+
+
+func (this *TextEditor) CursorLeft(k int) string {
+    for k > 0 && this.left.Len() > 0 {
+        c := this.left.Back().Value.(rune)
+        this.left.Remove(this.left.Back())
+        this.right.PushFront(c)
+        k--
+    }
+    return this.getLeft10()
 }
 
 
 func (this *TextEditor) CursorRight(k int) string {
-    moves := min(k, len(this.right))
-    for i := 0; i < moves; i++ {
-        ch := this.right[len(this.right)-1]
-        this.right = this.right[:len(this.right)-1]
-        this.left = append(this.left, ch)
+    for k > 0 && this.right.Len() > 0 {
+        c := this.right.Front().Value.(rune)
+        this.right.Remove(this.right.Front())
+        this.left.PushBack(c)
+        k--
     }
-    return this.getLastTenLeft()
+    return this.getLeft10()
 }
 
-func (this *TextEditor) getLastTenLeft() string {
-    start := max(0, len(this.left)-10)
-    return string(this.left[start:])
-}
-
-func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
-}
-
-func max(a, b int) int {
-    if a > b {
-        return a
-    }
-    return b
-}
 
 /**
-* Your TextEditor object will be instantiated and called as such:
-* obj := Constructor();
-* obj.AddText(text);
-* param_2 := obj.DeleteText(k);
-* param_3 := obj.CursorLeft(k);
-* param_4 := obj.CursorRight(k);
-*/
+ * Your TextEditor object will be instantiated and called as such:
+ * obj := Constructor();
+ * obj.AddText(text);
+ * param_2 := obj.DeleteText(k);
+ * param_3 := obj.CursorLeft(k);
+ * param_4 := obj.CursorRight(k);
+ */
 # @lc code=end
