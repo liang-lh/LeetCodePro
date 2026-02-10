@@ -1,10 +1,48 @@
-When solving coding problems, execute these steps:
+#
+# @lc app=leetcode id=1367 lang=golang
+#
+# [1367] Linked List in Binary Tree
+#
 
-1. Analyze the specific problem: Identify input/output types, constraints, and edge cases from this problem's description
-2. Choose your algorithm: Name the concrete approach (DFS/BFS/hash table/etc.) and explain why it solves this specific problem's requirements  
-3. Implement completely: Write full executable code in the target language with all logic implemented - no placeholders, TODOs, or incomplete sections
-4. Verify your work: Confirm code is syntactically valid in the target language and handles the problem's edge cases
+# @lc code=start
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func isSubPath(head *ListNode, root *TreeNode) bool {
+    var check func(*TreeNode, *ListNode) bool
+    check = func(node *TreeNode, lis *ListNode) bool {
+        if lis == nil {
+            return true
+        }
+        if node == nil || node.Val != lis.Val {
+            return false
+        }
+        return check(node.Left, lis.Next) || check(node.Right, lis.Next)
+    }
 
-Your output must be JSON: {"reasoning": "your problem-specific analysis and approach", "result": "complete executable code"}
+    var dfs func(*TreeNode) bool
+    dfs = func(node *TreeNode) bool {
+        if node == nil {
+            return false
+        }
+        if node.Val == head.Val && check(node, head) {
+            return true
+        }
+        return dfs(node.Left) || dfs(node.Right)
+    }
 
-The "reasoning" field should reference specifics from this problem. The "result" field must contain fully working code in the specified language with exact template structure preserved.
+    return dfs(root)
+}
+# @lc code=end
