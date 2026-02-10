@@ -13,27 +13,19 @@
  * }
  */
 func insertGreatestCommonDivisors(head *ListNode) *ListNode {
-
 	gcd := func(a, b int) int {
 		for b != 0 {
 			a, b = b, a % b
 		}
 		return a
 	}
-
-	if head == nil {
-		return head
+	cur := head
+	for cur != nil && cur.Next != nil {
+		g := gcd(cur.Val, cur.Next.Val)
+		newNode := &ListNode{Val: g, Next: cur.Next}
+		cur.Next = newNode
+		cur = newNode.Next
 	}
-
-	curr := head
-	for curr.Next != nil {
-		g := gcd(curr.Val, curr.Next.Val)
-		newNode := &ListNode{Val: g}
-		newNode.Next = curr.Next
-		curr.Next = newNode
-		curr = newNode.Next
-	}
-
 	return head
 }
 # @lc code=end
