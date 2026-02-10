@@ -8,52 +8,43 @@
 func remainingMethods(n int, k int, invocations [][]int) []int {
 	adj := make([][]int, n)
 	for _, inv := range invocations {
-		a, b := inv[0], inv[1]
-		adj[a] = append(adj[a], b)
+		adj[inv[0]] = append(adj[inv[0]], inv[1])
 	}
-
-	vis := make([]bool, n)
-	vis[k] = true
-
-	q := make([]int, 0, n)
-	q = append(q, k)
-	front := 0
-
-	for front < len(q) {
-		u := q[front]
-		front++
+	susp := make([]bool, n)
+	var stack []int
+	susp[k] = true
+	stack = append(stack, k)
+	for len(stack) > 0 {
+		u := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
 		for _, v := range adj[u] {
-			if !vis[v] {
-				vis[v] = true
-				q = append(q, v)
+			if !susp[v] {
+				susp[v] = true
+				stack = append(stack, v)
 			}
 		}
 	}
-
 	canRemove := true
 	for _, inv := range invocations {
-		a, b := inv[0], inv[1]
-		if !vis[a] && vis[b] {
+		if susp[inv[1]] && !susp[inv[0]] {
 			canRemove = false
 			break
 		}
 	}
-
 	if !canRemove {
 		res := make([]int, n)
-		for i := range res {
+		for i := 0; i < n; i++ {
 			res[i] = i
 		}
 		return res
 	}
-
-	res := make([]int, 0, n)
+	var res []int
 	for i := 0; i < n; i++ {
-		if !vis[i] {
+		if !susp[i] {
 			res = append(res, i)
 		}
 	}
-
 	return res
 }
+
 # @lc code=end
