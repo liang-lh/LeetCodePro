@@ -3,80 +3,96 @@
 #
 # [3509] Maximum Product of Subsequences With an Alternating Sum Equal to K
 #
+
 # @lc code=start
 func maxProduct(nums []int, k int, limit int) int {
-    type State struct {
-        sum    int
-        parity int // 0 for even length, 1 for odd length
-    }
-    
-    // dp[state] = set of achievable products
-    dp := make(map[State]map[int]bool)
-    
-    for _, num := range nums {
-        newDp := make(map[State]map[int]bool)
-        
-        // Copy existing states (skip current number)
-        for state, products := range dp {
-            if newDp[state] == nil {
-                newDp[state] = make(map[int]bool)
-            }
-            for product := range products {
-                newDp[state][product] = true
-            }
-        }
-        
-        // Start new subsequence with current number
-        if num <= limit {
-            state := State{sum: num, parity: 1}
-            if newDp[state] == nil {
-                newDp[state] = make(map[int]bool)
-            }
-            newDp[state][num] = true
-        }
-        
-        // Extend existing subsequences
-        for state, products := range dp {
-            for product := range products {
-                newProduct := product * num
-                if newProduct > limit {
-                    continue
-                }
-                
-                var newSum int
-                newParity := 1 - state.parity
-                
-                if state.parity == 1 {
-                    // Odd length: next element at odd index (subtract)
-                    newSum = state.sum - num
-                } else {
-                    // Even length: next element at even index (add)
-                    newSum = state.sum + num
-                }
-                
-                newState := State{sum: newSum, parity: newParity}
-                if newDp[newState] == nil {
-                    newDp[newState] = make(map[int]bool)
-                }
-                newDp[newState][newProduct] = true
-            }
-        }
-        
-        dp = newDp
-    }
-    
-    // Find maximum product with sum = k
-    maxProd := -1
-    for state, products := range dp {
-        if state.sum == k {
-            for product := range products {
-                if product > maxProd {
-                    maxProd = product
-                }
-            }
-        }
-    }
-    
-    return maxProd
+	const SHIFT = 1800
+	const MAXS = 3601
+
+	current := [2][3601]int{}
+	for p := 0; p < 2; p++ {
+		for s := 0; s < MAXS; s++ {
+			current[p][s] = -1
+		}
+	}
+
+	n := len(nums)
+	for i := 0; i < n; i++ {
+		x := nums[i]
+		newdp := [2][3601]int{}
+		for p := 0; p < 2; p++ {
+			for s := 0; s < MAXS; s++ {
+				newdp[p][s] = -1
+			}
+		}
+
+		// skip
+		for p := 0; p < 2; p++ {
+			for s := 0; s < MAXS; s++ {
+				if current[p][s] > newdp[p][s] {
+					newdp[p][s] = current[p][s]
+				}
+			}
+		}
+
+		// continuation pick
+		for p := 0; p < 2; p++ {
+			for s := 0; s < MAXS; s++ {
+				if current[p][s] != -1 {
+					sign := 1
+					if p == 1 {
+						sign = -1
+					}
+					delta := sign * x
+					news := s + delta
+					if news >= 0 && news < MAXS {
+						newprod64 := int64(current[p][s]) * int64(x)
+						if newprod64 <= int64(limit) {
+							newp := 1 - p
+							newprod := int(newprod64)
+							if newdp[newp][news] < newprod {
+								newdp[newp][news] = newprod
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// start new
+		prod64 := int64(x)
+		if prod64 <= int64(limit) {
+			starts := SHIFT + x
+			startp := 1
+			if starts >= 0 && starts < MAXS {
+				startprod := x
+				if newdp[startp][starts] < startprod {
+					newdp[startp][starts] = startprod
+				}
+			}
+		}
+
+		// copy to current
+		for p := 0; p < 2; p++ {
+			for s := 0; s < MAXS; s++ {
+				current[p][s] = newdp[p][s]
+			}
+		}
+	}
+
+	target := SHIFT + k
+	if target < 0 || target >= MAXS {
+		return -1
+	}
+
+	ans := -1
+	if current[0][target] > ans {
+		ans = current[0][target]
+	}
+	if current[1][target] > ans {
+		ans = current[1][target]
+	}
+
+	return ans
 }
 # @lc code=end
