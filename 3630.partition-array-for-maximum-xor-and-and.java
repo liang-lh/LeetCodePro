@@ -4,41 +4,49 @@
 # [3630] Partition Array for Maximum XOR and AND
 #
 # @lc code=start
-import java.util.HashMap;
-
 class Solution {
-    private HashMap<String, Long> memo = new HashMap<>();
-    
     public long maximizeXorAndXor(int[] nums) {
-        return solve(nums, 0, 0, 0, 0, true);
-    }
-    
-    private long solve(int[] nums, int idx, long xorA, long andB, long xorC, boolean isBEmpty) {
-        if (idx == nums.length) {
-            long finalAndB = isBEmpty ? 0 : andB;
-            return xorA + finalAndB + xorC;
+        int n = nums.length;
+        long maxValue = 0;
+        
+        // Total number of partitions: 3^n
+        int totalPartitions = (int) Math.pow(3, n);
+        
+        for (int partition = 0; partition < totalPartitions; partition++) {
+            int xorA = 0;
+            int andB = 0;
+            int xorC = 0;
+            boolean hasBElements = false;
+            int tempAndB = -1; // All bits set initially
+            
+            int temp = partition;
+            for (int i = 0; i < n; i++) {
+                int assignment = temp % 3;
+                temp /= 3;
+                
+                if (assignment == 0) { // Assign to A
+                    xorA ^= nums[i];
+                } else if (assignment == 1) { // Assign to B
+                    if (!hasBElements) {
+                        tempAndB = nums[i];
+                        hasBElements = true;
+                    } else {
+                        tempAndB &= nums[i];
+                    }
+                } else { // Assign to C (assignment == 2)
+                    xorC ^= nums[i];
+                }
+            }
+            
+            if (hasBElements) {
+                andB = tempAndB;
+            }
+            
+            long value = (long)xorA + (long)andB + (long)xorC;
+            maxValue = Math.max(maxValue, value);
         }
         
-        String key = idx + "_" + xorA + "_" + andB + "_" + xorC + "_" + isBEmpty;
-        if (memo.containsKey(key)) {
-            return memo.get(key);
-        }
-        
-        long num = nums[idx];
-        
-        // Option 1: Add to A
-        long opt1 = solve(nums, idx + 1, xorA ^ num, andB, xorC, isBEmpty);
-        
-        // Option 2: Add to B
-        long newAndB = isBEmpty ? num : (andB & num);
-        long opt2 = solve(nums, idx + 1, xorA, newAndB, xorC, false);
-        
-        // Option 3: Add to C
-        long opt3 = solve(nums, idx + 1, xorA, andB, xorC ^ num, isBEmpty);
-        
-        long result = Math.max(opt1, Math.max(opt2, opt3));
-        memo.put(key, result);
-        return result;
+        return maxValue;
     }
 }
 # @lc code=end
