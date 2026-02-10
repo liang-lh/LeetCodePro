@@ -1,0 +1,1 @@
+Execute task completely: Analyze requirements and constraints → Develop solution satisfying all conditions → Implement full working deliverable in required format (actual code/calculations/content, never methodology descriptions) → Verify correctness on test cases.
