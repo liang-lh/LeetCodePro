@@ -6,101 +6,48 @@
 # @lc code=start
 class Solution {
     public long specialPalindrome(long n) {
-        List<Long> specials = new ArrayList<>();
-        generateSpecials(specials);
-        Collections.sort(specials);
-        
-        for (long special : specials) {
-            if (special > n) {
-                return special;
+        long candidate = n + 1;
+        while (candidate <= 1_000_000_000_000_000L) {
+            if (isSpecialPalindrome(candidate)) {
+                return candidate;
             }
+            candidate++;
         }
-        
         return -1;
     }
     
-    private void generateSpecials(List<Long> specials) {
-        int[] evenDigits = {2, 4, 6, 8};
-        int[] oddDigits = {1, 3, 5, 7, 9};
+    private boolean isSpecialPalindrome(long num) {
+        String s = String.valueOf(num);
         
-        for (int mask = 1; mask < (1 << 4); mask++) {
-            List<Integer> digits = new ArrayList<>();
-            for (int i = 0; i < 4; i++) {
-                if ((mask & (1 << i)) != 0) {
-                    digits.add(evenDigits[i]);
-                }
-            }
-            long palindrome = buildEvenPalindrome(digits);
-            if (palindrome > 0) {
-                specials.add(palindrome);
-            }
+        if (!isPalindrome(s)) {
+            return false;
         }
         
-        for (int oddDigit : oddDigits) {
-            for (int mask = 0; mask < (1 << 4); mask++) {
-                List<Integer> evenDigs = new ArrayList<>();
-                for (int i = 0; i < 4; i++) {
-                    if ((mask & (1 << i)) != 0) {
-                        evenDigs.add(evenDigits[i]);
-                    }
-                }
-                long palindrome = buildOddPalindrome(evenDigs, oddDigit);
-                if (palindrome > 0) {
-                    specials.add(palindrome);
-                }
+        int[] freq = new int[10];
+        for (char c : s.toCharArray()) {
+            freq[c - '0']++;
+        }
+        
+        for (int digit = 0; digit <= 9; digit++) {
+            if (freq[digit] > 0 && freq[digit] != digit) {
+                return false;
             }
         }
+        
+        return true;
     }
     
-    private long buildEvenPalindrome(List<Integer> digits) {
-        try {
-            List<Integer> halfDigits = new ArrayList<>();
-            for (int digit : digits) {
-                for (int i = 0; i < digit / 2; i++) {
-                    halfDigits.add(digit);
-                }
+    private boolean isPalindrome(String s) {
+        int left = 0;
+        int right = s.length() - 1;
+        while (left < right) {
+            if (s.charAt(left) != s.charAt(right)) {
+                return false;
             }
-            Collections.sort(halfDigits);
-            
-            StringBuilder sb = new StringBuilder();
-            for (int d : halfDigits) {
-                sb.append(d);
-            }
-            String half = sb.toString();
-            String full = half + new StringBuilder(half).reverse().toString();
-            
-            if (full.length() > 18) return -1;
-            return Long.parseLong(full);
-        } catch (Exception e) {
-            return -1;
+            left++;
+            right--;
         }
-    }
-    
-    private long buildOddPalindrome(List<Integer> evenDigits, int oddDigit) {
-        try {
-            List<Integer> halfDigits = new ArrayList<>();
-            for (int digit : evenDigits) {
-                for (int i = 0; i < digit / 2; i++) {
-                    halfDigits.add(digit);
-                }
-            }
-            for (int i = 0; i < (oddDigit - 1) / 2; i++) {
-                halfDigits.add(oddDigit);
-            }
-            Collections.sort(halfDigits);
-            
-            StringBuilder sb = new StringBuilder();
-            for (int d : halfDigits) {
-                sb.append(d);
-            }
-            String half = sb.toString();
-            String full = half + oddDigit + new StringBuilder(half).reverse().toString();
-            
-            if (full.length() > 18) return -1;
-            return Long.parseLong(full);
-        } catch (Exception e) {
-            return -1;
-        }
+        return true;
     }
 }
 # @lc code=end
