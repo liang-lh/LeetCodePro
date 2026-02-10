@@ -9,10 +9,10 @@ class Solution {
         long maxProduct = 0;
         int n = nums.length;
         
-        // Try all pairs of distinct indices
+        // Check all pairs
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
-                // Check if they have no common set bits using bitwise AND
+                // Check if nums[i] and nums[j] have no common set bits
                 if ((nums[i] & nums[j]) == 0) {
                     long product = (long) nums[i] * nums[j];
                     maxProduct = Math.max(maxProduct, product);
