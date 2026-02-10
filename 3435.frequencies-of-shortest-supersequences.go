@@ -3,108 +3,143 @@
 #
 # [3435] Frequencies of Shortest Supersequences
 #
+
 # @lc code=start
 func supersequences(words []string) [][]int {
-    // Extract unique characters
-    charSet := make(map[rune]bool)
-    for _, word := range words {
-        for _, ch := range word {
-            charSet[ch] = true
-        }
-    }
-    chars := make([]rune, 0, len(charSet))
-    for ch := range charSet {
-        chars = append(chars, ch)
-    }
-    
-    // BFS state: (progress array, sequence string)
-    type State struct {
-        progress []int
-        seq string
-    }
-    
-    queue := []State{{make([]int, len(words)), ""}}
-    
-    for len(queue) > 0 {
-        nextQueue := []State{}
-        seen := make(map[string]bool)
-        
-        for _, state := range queue {
-            // Check if complete
-            complete := true
-            for i := range words {
-                if state.progress[i] < 2 {
-                    complete = false
-                    break
-                }
-            }
-            if complete {
-                // Found shortest, collect all at this level
-                results := []string{state.seq}
-                for _, s := range queue {
-                    allDone := true
-                    for i := range words {
-                        if s.progress[i] < 2 {
-                            allDone = false
-                            break
-                        }
-                    }
-                    if allDone && s.seq != state.seq {
-                        results = append(results, s.seq)
-                    }
-                }
-                
-                // Convert to frequency arrays and deduplicate
-                freqSet := make(map[string][]int)
-                for _, seq := range results {
-                    freq := make([]int, 26)
-                    for _, ch := range seq {
-                        freq[ch-'a']++
-                    }
-                    key := ""
-                    for _, f := range freq {
-                        key += string(rune(f))
-                    }
-                    freqSet[key] = freq
-                }
-                
-                result := make([][]int, 0, len(freqSet))
-                for _, freq := range freqSet {
-                    result = append(result, freq)
-                }
-                return result
-            }
-            
-            // Try each character
-            for _, ch := range chars {
-                newProgress := make([]int, len(words))
-                copy(newProgress, state.progress)
-                
-                for i, word := range words {
-                    if newProgress[i] < len(word) && rune(word[newProgress[i]]) == ch {
-                        newProgress[i]++
-                    }
-                }
-                
-                newSeq := state.seq + string(ch)
-                
-                // State deduplication
-                key := ""
-                for _, p := range newProgress {
-                    key += string(rune(p))
-                }
-                key += newSeq
-                
-                if !seen[key] {
-                    seen[key] = true
-                    nextQueue = append(nextQueue, State{newProgress, newSeq})
-                }
-            }
-        }
-        
-        queue = nextQueue
-    }
-    
-    return [][]int{}
+	charSet := make(map[byte]bool)
+	for _, word := range words {
+		charSet[word[0]] = true
+		charSet[word[1]] = true
+	}
+
+	letterList := []int{}
+	var idOf [26]int
+	for i := range idOf {
+		idOf[i] = -1
+	}
+
+	idIdx := 0
+	for ch := range charSet {
+		letIdx := int(ch - 'a')
+		letterList = append(letterList, letIdx)
+		idOf[letIdx] = idIdx
+		idIdx++
+	}
+
+	k := len(letterList)
+
+	mand := 0
+	pairs := [][2]int{}
+	for _, word := range words {
+		u := idOf[int(word[0]-'a')]
+		v := idOf[int(word[1]-'a')]
+		pairs = append(pairs, [2]int{u, v})
+		if u == v {
+			mand |= 1 << u
+		}
+	}
+
+	minL := 999
+	var res [][]int
+
+	for mask := 0; mask < (1 << k); mask++ {
+		if (mask & mand) != mand {
+			continue
+		}
+
+		var openID [16]int
+		var closeID [16]int
+		eid := 0
+		for i := 0; i < k; i++ {
+			openID[i] = eid
+			eid++
+			if (mask & (1 << i)) != 0 {
+				closeID[i] = eid
+				eid++
+			} else {
+				closeID[i] = openID[i]
+			}
+		}
+
+		E := eid
+
+		adjj := make([][]int, E)
+		indegg := make([]int, E)
+
+		// double edges
+		for i := 0; i < k; i++ {
+			if (mask & (1 << i)) != 0 {
+				fr := openID[i]
+				to := closeID[i]
+				adjj[fr] = append(adjj[fr], to)
+				indegg[to]++
+			}
+		}
+
+		// pair edges
+		for _, p := range pairs {
+			u := p[0]
+			v := p[1]
+			fr := openID[u]
+			to := closeID[v]
+			adjj[fr] = append(adjj[fr], to)
+			indegg[to]++
+		}
+
+		// Kahn's
+		q := []int{}
+		for i := 0; i < E; i++ {
+			if indegg[i] == 0 {
+				q = append(q, i)
+			}
+		}
+
+		qi := 0
+		cnt := 0
+		for qi < len(q) {
+			u := q[qi]
+			qi++
+			cnt++
+			for _, nei := range adjj[u] {
+				indegg[nei]--
+				if indegg[nei] == 0 {
+					q = append(q, nei)
+				}
+			}
+		}
+
+		ok := (cnt == E)
+
+		if ok {
+			thisL := E
+			if thisL < minL {
+				minL = thisL
+				res = res[:0]
+				freq := make([]int, 26)
+				for i := 0; i < k; i++ {
+					fcnt := 1
+					if (mask & (1 << i)) != 0 {
+						fcnt = 2
+					}
+					let := letterList[i]
+					freq[let] = fcnt
+				}
+				res = append(res, freq)
+			} else if thisL == minL {
+				freq := make([]int, 26)
+				for i := 0; i < k; i++ {
+					fcnt := 1
+					if (mask & (1 << i)) != 0 {
+						fcnt = 2
+					}
+					let := letterList[i]
+					freq[let] = fcnt
+				}
+				res = append(res, freq)
+			}
+		}
+	}
+
+	return res
 }
 # @lc code=end
