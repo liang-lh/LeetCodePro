@@ -3,60 +3,45 @@
 #
 # [2074] Reverse Nodes in Even Length Groups
 #
+
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* type ListNode struct {
-*     Val int
-*     Next *ListNode
-* }
-*/
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
 func reverseEvenLengthGroups(head *ListNode) *ListNode {
-    if head == nil {
-        return nil
-    }
-    
     dummy := &ListNode{Next: head}
-    prev := dummy
+    prevGroupEnd := dummy
     groupSize := 1
-    
-    for prev.Next != nil {
-        // Count actual nodes in this group
-        curr := prev.Next
-        count := 0
-        for curr != nil && count < groupSize {
-            curr = curr.Next
-            count++
+    for prevGroupEnd.Next != nil {
+        groupStart := prevGroupEnd.Next
+        groupEnd := groupStart
+        groupLength := 1
+        for groupLength < groupSize && groupEnd.Next != nil {
+            groupEnd = groupEnd.Next
+            groupLength++
         }
-        
-        // If group has even length, reverse it
-        if count % 2 == 0 {
-            prev.Next = reverseGroup(prev.Next, count)
+        nextStart := groupEnd.Next
+        if groupLength % 2 == 0 {
+            revPrev := (*ListNode)(nil)
+            curr := groupStart
+            for curr != nextStart {
+                nextNode := curr.Next
+                curr.Next = revPrev
+                revPrev = curr
+                curr = nextNode
+            }
+            groupStart.Next = nextStart
+            prevGroupEnd.Next = revPrev
+            prevGroupEnd = groupStart
+        } else {
+            prevGroupEnd = groupEnd
         }
-        
-        // Move prev to the end of current group
-        for i := 0; i < count; i++ {
-            prev = prev.Next
-        }
-        
         groupSize++
     }
-    
     return dummy.Next
-}
-
-func reverseGroup(head *ListNode, k int) *ListNode {
-    var prev *ListNode
-    curr := head
-    
-    for i := 0; i < k && curr != nil; i++ {
-        next := curr.Next
-        curr.Next = prev
-        prev = curr
-        curr = next
-    }
-    
-    head.Next = curr
-    return prev
 }
 # @lc code=end
