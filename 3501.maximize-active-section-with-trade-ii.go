@@ -1,3 +1,154 @@
-{
-    "reasoning": "Step 1: Understand the problem and clarify measurement scope\n- Binary string with '1' (active) and '0' (inactive)\n- Trade operation: convert '1' block surrounded by '0's to '0's, then convert resulting '0' block surrounded by '1's to '1's\n- Each query modifies substring s[l...r]\n- Critical question: After modifying a substring, do we count '1's in the substring only, or in the entire original string?\n- Verify with Example 2, query [0,3]: s='0100', l=0, r=3 (entire string), output=4\n  - Original string has 4 characters total\n  - After optimal trade, all 4 become '1'\n  - Output 4 = total length, not substring length\n- Clarification: We count '1's in the FULL reconstructed string (prefix + modified_substring + suffix)\n\nStep 2: Understand the reconstruction process\n- Extract substring: substr = s[l...r]\n- Augment: augmented = '1' + substr + '1'\n- Perform trade on augmented string\n- Remove augmentation: take indices [1...len(substr)] from result\n- Reconstruct full string: full = s[0...l-1] + modified_substr + s[r+1...n-1]\n- Measure: count ALL '1's in full reconstructed string\n\nStep 3: Verify approach with complete end-to-end example\nExample 2, Query [0,3]: s='0100', l=0, r=3\n- Extract: substr='0100'\n- Augment: augmented='101001'\n- Baseline (no trade): s='0100', count=1 '1'\n- Find '1' blocks in augmented surrounded by '0's: block at indices [1,1] (value '1')\n- Convert block [1,1] to '0': '101001' → '100001'\n- Find '0' blocks surrounded by '1's: block at indices [1,4] (value '0000')\n- Convert block [1,4] to '1': '100001' → '111111'\n- Remove augmentation [1...4]: '1111'\n- Reconstruct full string: s[0...(-1)] + '1111' + s[4...3] = '' + '1111' + '' = '1111'\n- Count '1's in '1111': 4 ✓ matches expected output\n\nStep 4: Identify edge cases\n- No valid '1' blocks surrounded by '0's (no trade possible)\n- After converting '1' block, no valid '0' blocks appear\n- Query covers entire string vs partial string\n- Empty prefix or suffix after reconstruction\n- Substring length = 1\n- All characters same\n\nStep 5: Algorithm design with explicit reconstruction\na. For each query [l, r]:\n   - Extract substring: substr = s[l...r]\n   - Create augmented: aug = '1' + substr + '1'\n   - Baseline count: reconstruct s with no changes, count all '1's\n   - maxCount = baseline\nb. Find all '1' blocks surrounded by '0's in aug\nc. For each '1' block [start, end]:\n   - Convert to '0's in aug: temp1 = aug with [start,end] as '0's\n   - Find all '0' blocks surrounded by '1's in temp1\n   - For each '0' block [zStart, zEnd]:\n     - Convert to '1's: temp2 = temp1 with [zStart,zEnd] as '1's\n     - Remove augmentation: modified = temp2[1...len(substr)]\n     - Reconstruct full string: full = s[0...l-1] + modified + s[r+1...n-1]\n     - Count all '1's in full\n     - Update maxCount if higher\nd. Return maxCount\n\nStep 6: Validate measurement scope before finalizing\n- Question: Am I measuring the correct scope?\n- Check: I count '1's in reconstructed full string (prefix + modified + suffix) ✓\n- Cross-check Example 2 query [0,3]: full='1111', count=4 ✓\n- Cross-check Example 3 query [1,5]: s='1000100', modified s[1...5]='11111', full='1'+'11111'+'0'='1111110', count=6 ✓\n\nStep 7: Complexity analysis\n- Per query: O(m³) where m = substring length\n  - Finding blocks: O(m)\n  - Trying '1' blocks: O(k₁)\n  - Finding '0' blocks per '1' block: O(m)\n  - Trying '0' blocks: O(k₀)\n  - Reconstruction and counting: O(n) where n = full string length\n  - Worst case: k₁ * k₀ * O(n) ≈ O(m² * n)\n- With constraints n, m ≤ 10⁵: acceptable for most inputs, may timeout on adversarial cases\n\nStep 8: Implementation strategy\n- Main function: iterate queries, call helper for each\n- Helper: solveQuery(s, l, r) returns count for one query\n  - Extract and augment\n  - Try all trades\n  - For each, reconstruct full string and count\n- Utility functions: findOneBlocks, findZeroBlocks, countOnes\n- Use string slicing for reconstruction: s[:l] + modified + s[r+1:]\n\nStep 9: Verify output format compliance\n- Task requires specific JSON structure: flat JSON with 'reasoning' and 'result' at TOP LEVEL\n- Format checklist:\n  ☐ JSON has exactly TWO top-level fields: 'reasoning' and 'result'\n  ☐ 'reasoning' field contains string with step-by-step process\n  ☐ 'result' field contains ONLY the solution code as a string, NOT another JSON\n  ☐ No additional nesting or wrapping beyond specified structure\n- Self-check before submitting:\n  Question: Is my 'result' field a simple string containing code, or does it contain nested JSON?\n  Answer: It must be a simple string with the code\n  Question: Are 'reasoning' and 'result' at the top level, or nested inside another structure?\n  Answer: They must be at the top level\n- Final validation: My output structure must match: {\"reasoning\": \"...\", \"result\": \"code...\"}",
-    "result": "#\n# @lc app=leetcode id=3501 lang=golang\n#\n# [3501] Maximize Active Section with Trade II\n#\n# @lc code=start\nfunc maxActiveSectionsAfterTrade(s string, queries [][]int) []int {\n    result := make([]int, len(queries))\n    \n    for i, query := range queries {\n        l, r := query[0], query[1]\n        result[i] = solveQuery(s, l, r)\n    }\n    \n    return result\n}\n\nfunc solveQuery(s string, l, r int) int {\n    // Extract substring\n    substr := s[l:r+1]\n    \n    // Create augmented string\n    augmented := \"1\" + substr + \"1\"\n    \n    // Baseline: count 1's in original full string s (no trade)\n    maxCount := countOnesInString(s)\n    \n    // Try all possible trades\n    oneBlocks := findOneBlocks(augmented)\n    \n    for _, block := range oneBlocks {\n        // Convert this 1-block to 0's\n        temp := []byte(augmented)\n        for j := block[0]; j <= block[1]; j++ {\n            temp[j] = '0'\n        }\n        newStr := string(temp)\n        \n        // Find all 0-blocks surrounded by 1's\n        zeroBlocks := findZeroBlocks(newStr)\n        \n        for _, zBlock := range zeroBlocks {\n            // Convert this 0-block to 1's\n            temp2 := []byte(newStr)\n            for j := zBlock[0]; j <= zBlock[1]; j++ {\n                temp2[j] = '1'\n            }\n            \n            // Remove augmentation: extract modified substring (indices 1 to len(substr))\n            modifiedSubstr := string(temp2[1:len(substr)+1])\n            \n            // Reconstruct full string\n            prefix := \"\"\n            suffix := \"\"\n            if l > 0 {\n                prefix = s[:l]\n            }\n            if r < len(s)-1 {\n                suffix = s[r+1:]\n            }\n            fullString := prefix + modifiedSubstr + suffix\n            \n            // Count all 1's in reconstructed full string\n            count := countOnesInString(fullString)\n            if count > maxCount {\n                maxCount = count\n            }\n        }\n    }\n    \n    return maxCount\n}\n\nfunc findOneBlocks(s string) [][]int {\n    blocks := [][]int{}\n    n := len(s)\n    i := 0\n    \n    for i < n {\n        if s[i] == '1' {\n            start := i\n            for i < n && s[i] == '1' {\n                i++\n            }\n            end := i - 1\n            \n            // Check if surrounded by 0's\n            if start > 0 && end < n-1 && s[start-1] == '0' && s[end+1] == '0' {\n                blocks = append(blocks, []int{start, end})\n            }\n        } else {\n            i++\n        }\n    }\n    \n    return blocks\n}\n\nfunc findZeroBlocks(s string) [][]int {\n    blocks := [][]int{}\n    n := len(s)\n    i := 0\n    \n    for i < n {\n        if s[i] == '0' {\n            start := i\n            for i < n && s[i] == '0' {\n                i++\n            }\n            end := i - 1\n            \n            // Check if surrounded by 1's\n            if start > 0 && end < n-1 && s[start-1] == '1' && s[end+1] == '1' {\n                blocks = append(blocks, []int{start, end})\n            }\n        } else {\n            i++\n        }\n    }\n    \n    return blocks\n}\n\nfunc countOnesInString(s string) int {\n    count := 0\n    for _, ch := range s {\n        if ch == '1' {\n            count++\n        }\n    }\n    return count\n}\n# @lc code=end"\n}
+#
+# @lc app=leetcode id=3501 lang=golang
+#
+# [3501] Maximize Active Section with Trade II
+#
+# @lc code=start
+func maxActiveSectionsAfterTrade(s string, queries [][]int) []int {
+	const LOG = 17
+	const MAXK = 50005
+	n := len(s)
+	totalOnes := 0
+	for _, ch := range s {
+		if ch == '1' {
+			totalOnes++
+		}
+	}
+
+	islandsSt := []int{}
+	islandsEn := []int{}
+	i := 0
+	for i < n {
+		if s[i] == '1' {
+			st := i
+			for i < n && s[i] == '1' {
+				i++
+			}
+			en := i - 1
+			islandsSt = append(islandsSt, st)
+			islandsEn = append(islandsEn, en)
+		} else {
+			i++
+		}
+	}
+	k := len(islandsSt)
+
+	fullAdj := make([]int, k)
+	for j := 0; j < k; j++ {
+		prevB := 0
+		if j > 0 {
+			prevB = islandsEn[j-1] + 1
+		}
+		leftF := islandsSt[j] - prevB
+		nextB := n
+		if j+1 < k {
+			nextB = islandsSt[j+1]
+		}
+		rightF := nextB - 1 - islandsEn[j]
+		fullAdj[j] = leftF + rightF
+	}
+
+	// Sparse table
+	st := make([][]int, LOG)
+	logg := make([]int, n+2)
+	logg[1] = 0
+	for i := 2; i <= n; i++ {
+		logg[i] = logg[i/2] + 1
+	}
+	for lv := 0; lv < LOG; lv++ {
+		st[lv] = make([]int, k)
+	}
+	copy(st[0], fullAdj)
+	for lv := 1; lv < LOG; lv++ {
+		for i := 0; i+(1<<lv) <= k; i++ {
+			st[lv][i] = maxInt(st[lv-1][i], st[lv-1][i+(1<<(lv-1))])
+		}
+	}
+
+	qrmq := func(L, R int) int {
+		if L > R {
+			return 0
+		}
+		leng := R - L + 1
+		lv := logg[leng]
+		return maxInt(st[lv][L], st[lv][R-(1<<lv)+1])
+	}
+
+	// Binary search helpers
+	lowerBound := func(arr []int, val int) int {
+		lo := 0
+		hi := k
+		for lo < hi {
+			mid := lo + (hi-lo)/2
+			if arr[mid] >= val {
+				hi = mid
+			} else {
+				lo = mid + 1
+			}
+		}
+		return lo
+	}
+
+	ans := make([]int, len(queries))
+	for idx, q := range queries {
+		l, r := q[0], q[1]
+		jLeft := lowerBound(islandsSt, l+1)
+		jRight := lowerBound(islandsEn, r) - 1
+		if jLeft > jRight {
+			ans[idx] = totalOnes
+			continue
+		}
+
+		maxG := 0
+		// First: jLeft
+		{
+			prevB := 0
+			if jLeft > 0 {
+				prevB = islandsEn[jLeft-1] + 1
+			}
+			leftH := islandsSt[jLeft] - maxInt(l, prevB)
+			nextB := n
+			if jLeft+1 < k {
+				nextB = islandsSt[jLeft+1]
+			}
+			rightH := minInt(r, nextB-1) - islandsEn[jLeft]
+			maxG = maxInt(maxG, leftH+rightH)
+		}
+		// Last: jRight
+		if jRight >= jLeft {
+			prevB := 0
+			if jRight > 0 {
+				prevB = islandsEn[jRight-1] + 1
+			}
+			leftH := islandsSt[jRight] - maxInt(l, prevB)
+			nextB := n
+			if jRight+1 < k {
+				nextB = islandsSt[jRight+1]
+			}
+			rightH := minInt(r, nextB-1) - islandsEn[jRight]
+			maxG = maxInt(maxG, leftH+rightH)
+		}
+		// Middles
+		if jLeft+1 <= jRight-1 {
+			midMax := qrmq(jLeft+1, jRight-1)
+			maxG = maxInt(maxG, midMax)
+		}
+		ans[idx] = totalOnes + maxG
+	}
+	return ans
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+# @lc code=end
