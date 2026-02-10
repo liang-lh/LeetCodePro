@@ -3,97 +3,101 @@
 #
 # [3486] Longest Special Path II
 #
+
 # @lc code=start
 func longestSpecialPath(edges [][]int, nums []int) []int {
-    n := len(nums)
-    
-    // Build adjacency list
-    graph := make([][][2]int, n)
-    for _, edge := range edges {
-        u, v, length := edge[0], edge[1], edge[2]
-        graph[u] = append(graph[u], [2]int{v, length})
-        graph[v] = append(graph[v], [2]int{u, length})
-    }
-    
-    // Establish parent-child relationships via BFS from root 0
-    parent := make([]int, n)
-    children := make([][][2]int, n)
-    visited := make([]bool, n)
-    queue := []int{0}
-    visited[0] = true
-    parent[0] = -1
-    
-    for len(queue) > 0 {
-        node := queue[0]
-        queue = queue[1:]
-        
-        for _, next := range graph[node] {
-            child, length := next[0], next[1]
-            if !visited[child] {
-                visited[child] = true
-                parent[child] = node
-                children[node] = append(children[node], [2]int{child, length})
-                queue = append(queue, child)
-            }
-        }
-    }
-    
-    maxLength := 0
-    minNodes := 0
-    
-    // Check if frequency map is valid (at most one value appears twice)
-    isValid := func(freq map[int]int) bool {
-        twoCount := 0
-        for _, count := range freq {
-            if count > 2 {
-                return false
-            }
-            if count == 2 {
-                twoCount++
-                if twoCount > 1 {
-                    return false
-                }
-            }
-        }
-        return true
-    }
-    
-    // DFS exploring only downward paths (parent to children)
-    var dfs func(node, pathLen, nodeCount int, freq map[int]int)
-    dfs = func(node, pathLen, nodeCount int, freq map[int]int) {
-        // Add current node value
-        freq[nums[node]]++
-        
-        // Check if current path is valid
-        if isValid(freq) {
-            // Update result
-            if pathLen > maxLength {
-                maxLength = pathLen
-                minNodes = nodeCount
-            } else if pathLen == maxLength && nodeCount < minNodes {
-                minNodes = nodeCount
-            }
-            
-            // Explore downward to children only
-            for _, next := range children[node] {
-                child, edgeLen := next[0], next[1]
-                dfs(child, pathLen + edgeLen, nodeCount + 1, freq)
-            }
-        }
-        
-        // Backtrack
-        freq[nums[node]]--
-        if freq[nums[node]] == 0 {
-            delete(freq, nums[node])
-        }
-    }
-    
-    // Start DFS from every node as potential ancestor
-    for start := 0; start < n; start++ {
-        freq := make(map[int]int)
-        dfs(start, 0, 1, freq)
-    }
-    
-    return []int{maxLength, minNodes}
+	n := len(nums)
+	graph := make([][][2]int, n)
+	for _, e := range edges {
+		u, v, w := e[0], e[1], e[2]
+		graph[u] = append(graph[u], [2]int{v, w})
+		graph[v] = append(graph[v], [2]int{u, w})
+	}
+	children := make([][][2]int, n)
+	var buildTree func(u, p int)
+	buildTree = func(u, p int) {
+		for _, pair := range graph[u] {
+			v, w := pair[0], pair[1]
+			if v != p {
+				children[u] = append(children[u], [2]int{v, w})
+				buildTree(v, u)
+			}
+		}
+	}
+	buildTree(0, -1)
+
+	max_down := make([]int64, n)
+	max64 := func(a, b int64) int64 {
+		if a > b {
+			return a
+		}
+		return b
+	}
+	var dfsMaxDown func(u int) int64
+	dfsMaxDown = func(u int) int64 {
+		res := int64(0)
+		for _, pair := range children[u] {
+			v, w := pair[0], pair[1]
+			res = max64(res, int64(w) + dfsMaxDown(v))
+		}
+		max_down[u] = res
+		return res
+	}
+	dfsMaxDown(0)
+
+	var maxLen int64 = 0
+	minNodes := n + 1
+	minInt := func(a, b int) int {
+		if a < b {
+			return a
+		}
+		return b
+	}
+
+	const MAX_VAL = 50005
+	var cnt [50005]int
+
+	var specialDFS func(u int, curLen int64, curNodes int, hasDup bool)
+	specialDFS = func(u int, curLen int64, curNodes int, hasDup bool) {
+		// Update globals
+		if curLen > maxLen {
+			maxLen = curLen
+			minNodes = curNodes
+		} else if curLen == maxLen {
+			minNodes = minInt(minNodes, curNodes)
+		}
+
+		// Try children
+		for _, pair := range children[u] {
+			v, w := pair[0], pair[1]
+			if curLen + int64(w) + max_down[v] < maxLen {
+				continue
+			}
+			val := nums[v]
+			c := cnt[val]
+			can := false
+			newDup := hasDup
+			if c == 0 {
+				can = true
+			} else if c == 1 && !hasDup {
+				newDup = true
+				can = true
+			}
+			if can {
+				cnt[val]++
+				specialDFS(v, curLen + int64(w), curNodes + 1, newDup)
+				cnt[val]--
+			}
+		}
+	}
+
+	for i := 0; i < n; i++ {
+		val := nums[i]
+		cnt[val] = 1
+		specialDFS(i, 0, 1, false)
+		cnt[val] = 0
+	}
+
+	return []int{int(maxLen), minNodes}
 }
 # @lc code=end
