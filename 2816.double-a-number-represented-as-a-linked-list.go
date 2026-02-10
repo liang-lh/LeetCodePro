@@ -1,36 +1,11 @@
-#
-# @lc app=leetcode id=2816 lang=golang
-#
-# [2816] Double a Number Represented as a Linked List
-#
-# @lc code=start
-/**
-* Definition for singly-linked list.
-* type ListNode struct {
-*     Val int
-*     Next *ListNode
-* }
-*/
-func doubleIt(head *ListNode) *ListNode {
-    carry := helper(head)
-    if carry > 0 {
-        newHead := &ListNode{Val: carry, Next: head}
-        return newHead
-    }
-    return head
+{
+"reasoning": "Step 1: The linked list represents a non-negative integer with the head as MSD and no leading zeros except for 0.
+Step 2: Doubling requires propagating carry from LSD (tail) to MSD (head).
+Step 3: Reverse the list so LSD becomes head for easy carry propagation.
+Step 4: Traverse the reversed list, for each node compute val*2 + carry, set node.val = sum % 10, carry = sum / 10.
+Step 5: After traversal, if carry remains, append a new node with carry to the tail (which is original MSD in reversed list).
+Step 6: Reverse the list again to restore MSD at head.
+Step 7: Handles all cases including new digit creation and single node. Time: O(n), Space: O(1).
+Step 8: Verified: [1,8,9] -> reverse [9,8,1] -> process [8,7,3] carry=0 -> reverse [3,7,8]; [9,9,9] -> [9,9,9] -> [8,9,9] carry=1 append [8,9,9,1] -> reverse [1,9,9,8].", 
+"result": "#\n# @lc app=leetcode id=2816 lang=golang\n#\n# [2816] Double a Number Represented as a Linked List\n#\n\n# @lc code=start\n/*****\n* Definition for singly-linked list.\n* type ListNode struct {\n*     Val int\n*     Next *ListNode\n* }\n*/\nfunc doubleIt(head *ListNode) *ListNode {\n    // Reverse to make LSD head\n    var prev *ListNode\n    curr := head\n    for curr != nil {\n        next := curr.Next\n        curr.Next = prev\n        prev = curr\n        curr = next\n    }\n    head = prev\n\n    // Double with carry from LSD\n    carry := 0\n    curr = head\n    for curr != nil {\n        val := curr.Val * 2 + carry\n        curr.Val = val % 10\n        carry = val / 10\n        curr = curr.Next\n    }\n\n    // Append carry as new MSD in reversed list\n    if carry != 0 {\n        tail := head\n        for tail.Next != nil {\n            tail = tail.Next\n        }\n        tail.Next = &ListNode{Val: carry}\n    }\n\n    // Reverse back\n    prev = nil\n    curr = head\n    for curr != nil {\n        next := curr.Next\n        curr.Next = prev\n        prev = curr\n        curr = next\n    }\n    return prev\n}\n# @lc code=end"
 }
-
-func helper(node *ListNode) int {
-    if node == nil {
-        return 0
-    }
-    
-    // Process the rest of the list first
-    carry := helper(node.Next)
-    
-    // Double current digit and add carry from right
-    doubled := node.Val * 2 + carry
-    node.Val = doubled % 10
-    return doubled / 10
-}
-# @lc code=end
