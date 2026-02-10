@@ -5,77 +5,86 @@
 #
 
 # @lc code=start
-import "container/list"
-
 type FrontMiddleBackQueue struct {
-	q *list.List
+
+	q []int
 }
 
 
 func Constructor() FrontMiddleBackQueue {
-	return FrontMiddleBackQueue{list.New()}
+
+	return FrontMiddleBackQueue{q: []int{}}
 }
 
 
 func (this *FrontMiddleBackQueue) PushFront(val int)  {
-	this.q.PushFront(val)
+
+	this.q = append([]int{val}, this.q...)
 }
 
 
 func (this *FrontMiddleBackQueue) PushMiddle(val int)  {
-	if this.q.Len() == 0 {
-		this.q.PushFront(val)
-		return
-	}
-	n := this.q.Len()
-	pos := n / 2
-	it := this.q.Front()
-	for i := 0; i < pos; i++ {
-		it = it.Next()
-	}
-	this.q.InsertBefore(val, it)
+
+	pos := len(this.q) / 2
+
+	this.q = append(this.q[:pos], append([]int{val}, this.q[pos:]...)...)
 }
 
 
 func (this *FrontMiddleBackQueue) PushBack(val int)  {
-	this.q.PushBack(val)
+
+	this.q = append(this.q, val)
 }
 
 
 func (this *FrontMiddleBackQueue) PopFront() int {
-	if this.q.Len() == 0 {
+
+	if len(this.q) == 0 {
+
 		return -1
+
 	}
-	e := this.q.Front()
-	val := e.Value.(int)
-	this.q.Remove(e)
+
+	val := this.q[0]
+
+	this.q = this.q[1:]
+
 	return val
 }
 
 
 func (this *FrontMiddleBackQueue) PopMiddle() int {
-	n := this.q.Len()
-	if n == 0 {
+
+	if len(this.q) == 0 {
+
 		return -1
+
 	}
-	pos := (n - 1) / 2
-	it := this.q.Front()
-	for i := 0; i < pos; i++ {
-		it = it.Next()
-	}
-	val := it.Value.(int)
-	this.q.Remove(it)
+
+	mid := (len(this.q) - 1) / 2
+
+	val := this.q[mid]
+
+	this.q = append(this.q[:mid], this.q[mid+1:]...)
+
 	return val
 }
 
 
 func (this *FrontMiddleBackQueue) PopBack() int {
-	if this.q.Len() == 0 {
+
+	if len(this.q) == 0 {
+
 		return -1
+
 	}
-	e := this.q.Back()
-	val := e.Value.(int)
-	this.q.Remove(e)
+
+	n := len(this.q)
+
+	val := this.q[n-1]
+
+	this.q = this.q[:n-1]
+
 	return val
 }
 
