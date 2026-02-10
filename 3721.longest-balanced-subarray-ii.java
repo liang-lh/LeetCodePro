@@ -4,36 +4,29 @@
 # [3721] Longest Balanced Subarray II
 #
 # @lc code=start
-import java.util.HashSet;
-import java.util.Set;
-
 class Solution {
     public int longestBalanced(int[] nums) {
         int n = nums.length;
-        int maxLength = 0;
+        int maxLen = 0;
         
-        // Try all possible starting positions
         for (int i = 0; i < n; i++) {
-            Set<Integer> distinctEven = new HashSet<>();
-            Set<Integer> distinctOdd = new HashSet<>();
+            java.util.Set<Integer> evenSet = new java.util.HashSet<>();
+            java.util.Set<Integer> oddSet = new java.util.HashSet<>();
             
-            // Expand from starting position i
             for (int j = i; j < n; j++) {
-                // Add current number to appropriate set
                 if (nums[j] % 2 == 0) {
-                    distinctEven.add(nums[j]);
+                    evenSet.add(nums[j]);
                 } else {
-                    distinctOdd.add(nums[j]);
+                    oddSet.add(nums[j]);
                 }
                 
-                // Check if balanced
-                if (distinctEven.size() == distinctOdd.size()) {
-                    maxLength = Math.max(maxLength, j - i + 1);
+                if (evenSet.size() == oddSet.size()) {
+                    maxLen = Math.max(maxLen, j - i + 1);
                 }
             }
         }
         
-        return maxLength;
+        return maxLen;
     }
 }
 # @lc code=end
