@@ -1,22 +1,35 @@
-Step 1: Understand the Task
-Analyze carefully to identify:
-- What specific output is required
-- Input format and constraints
-- Expected output format
-- Edge cases to consider
+#
+# @lc app=leetcode id=2289 lang=golang
+#
+# [2289] Steps to Make Array Non-decreasing
+#
 
-Step 2: Plan the Approach
-Develop your solution strategy:
-- Identify the core concept or algorithm needed
-- Select appropriate methods and structures
-- Outline the main logic flow
-- Plan for optimizations and edge cases
-
-Step 3: Generate the Solution
-Now produce the complete, working solution:
-- Create the full implementation
-- Follow all format requirements exactly
-- Preserve any provided template structure
-- Make it immediately usable and complete
-
-Verification: Check that your output is concrete, complete, and directly usable. If any part is empty or incomplete, immediately regenerate Step 3.
+# @lc code=start
+func totalSteps(nums []int) int {
+	n := len(nums)
+	if n == 0 {
+		return 0
+	}
+	dp := make([]int, n)
+	stack := []int{}
+	ans := 0
+	for i := 0; i < n; i++ {
+		curMax := 0
+		for len(stack) > 0 && nums[stack[len(stack)-1]] <= nums[i] {
+			j := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if dp[j] > curMax {
+				curMax = dp[j]
+			}
+		}
+		if len(stack) > 0 {
+			dp[i] = curMax + 1
+			if dp[i] > ans {
+				ans = dp[i]
+			}
+		}
+		stack = append(stack, i)
+	}
+	return ans
+}
+# @lc code=end
