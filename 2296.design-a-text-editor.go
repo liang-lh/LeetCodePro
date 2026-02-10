@@ -3,73 +3,74 @@
 #
 # [2296] Design a Text Editor
 #
-import (
-    "container/list"
-)
 
 # @lc code=start
 type TextEditor struct {
-    left  *list.List
-    right *list.List
+	left  []byte
+	right []byte
 }
 
 
 func Constructor() TextEditor {
-    return TextEditor{list.New(), list.New()}
+	return TextEditor{}
 }
 
 
 func (this *TextEditor) AddText(text string)  {
-    for _, c := range text {
-        this.left.PushBack(c)
-    }
+	this.left = append(this.left, []byte(text)...)
 }
 
 
 func (this *TextEditor) DeleteText(k int) int {
-    deleted := 0
-    for k > 0 && this.left.Len() > 0 {
-        this.left.Remove(this.left.Back())
-        deleted++
-        k--
-    }
-    return deleted
-}
-
-
-func (this *TextEditor) getLeft10() string {
-    res := []rune{}
-    cur := this.left.Back()
-    for i := 0; i < 10 && cur != nil; i++ {
-        res = append(res, cur.Value.(rune))
-        cur = cur.Prev()
-    }
-    for i, j := 0, len(res)-1; i < j; i, j = i+1, j-1 {
-        res[i], res[j] = res[j], res[i]
-    }
-    return string(res)
+	n := len(this.left)
+	del := k
+	if del > n {
+		del = n
+	}
+	this.left = this.left[:n-del]
+	return del
 }
 
 
 func (this *TextEditor) CursorLeft(k int) string {
-    for k > 0 && this.left.Len() > 0 {
-        c := this.left.Back().Value.(rune)
-        this.left.Remove(this.left.Back())
-        this.right.PushFront(c)
-        k--
-    }
-    return this.getLeft10()
+	n := len(this.left)
+	moves := k
+	if moves > n {
+		moves = n
+	}
+	for i := 0; i < moves; i++ {
+		ch := this.left[n-1]
+		this.left = this.left[:n-1]
+		this.right = append(this.right, ch)
+		n--
+	}
+	l := len(this.left)
+	start := 0
+	if l > 10 {
+		start = l - 10
+	}
+	return string(this.left[start:])
 }
 
 
 func (this *TextEditor) CursorRight(k int) string {
-    for k > 0 && this.right.Len() > 0 {
-        c := this.right.Front().Value.(rune)
-        this.right.Remove(this.right.Front())
-        this.left.PushBack(c)
-        k--
-    }
-    return this.getLeft10()
+	n := len(this.right)
+	moves := k
+	if moves > n {
+		moves = n
+	}
+	for i := 0; i < moves; i++ {
+		ch := this.right[n-1]
+		this.right = this.right[:n-1]
+		this.left = append(this.left, ch)
+		n--
+	}
+	l := len(this.left)
+	start := 0
+	if l > 10 {
+		start = l - 10
+	}
+	return string(this.left[start:])
 }
 
 
