@@ -6,43 +6,46 @@
 
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* type ListNode struct {
-*     Val int
-*     Next *ListNode
-* }
-*/
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
 func nodesBetweenCriticalPoints(head *ListNode) []int {
-	if head == nil || head.Next == nil {
-		return []int{-1, -1}
-	}
-	crit := []int{}
-	prevVal := head.Val
-	cur := head.Next
-	idx := 2
+	minD := 200000000
+	maxD := 0
+	first := 0
+	prevCrit := 0
+	hasFirst := false
+	pos := 1
+	var prevNode *ListNode
+	cur := head
 	for cur != nil {
-		if cur.Next == nil {
-			break
+		if prevNode != nil && cur.Next != nil {
+			if (cur.Val > prevNode.Val && cur.Val > cur.Next.Val) ||
+				(cur.Val < prevNode.Val && cur.Val < cur.Next.Val) {
+				if !hasFirst {
+					hasFirst = true
+					first = pos
+					prevCrit = pos
+				} else {
+					dist := pos - prevCrit
+					if dist < minD {
+						minD = dist
+					}
+					maxD = pos - first
+					prevCrit = pos
+				}
+			}
 		}
-		nextVal := cur.Next.Val
-		if (cur.Val > prevVal && cur.Val > nextVal) || (cur.Val < prevVal && cur.Val < nextVal) {
-			crit = append(crit, idx)
-		}
-		prevVal = cur.Val
+		prevNode = cur
 		cur = cur.Next
-		idx++
+		pos++
 	}
-	if len(crit) < 2 {
+	if !hasFirst || first == prevCrit {
 		return []int{-1, -1}
 	}
-	minDist := crit[1] - crit[0]
-	for i := 2; i < len(crit); i++ {
-		dist := crit[i] - crit[i-1]
-		if dist < minDist {
-			minDist = dist
-		}
-	}
-	maxDist := crit[len(crit)-1] - crit[0]
-	return []int{minDist, maxDist}
+	return []int{minD, maxD}
 }
 # @lc code=end
