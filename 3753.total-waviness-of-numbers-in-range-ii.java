@@ -1,76 +1,59 @@
-#
-# @lc app=leetcode id=3753 lang=java
-#
-# [3753] Total Waviness of Numbers in Range II
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3753 lang=java
+//
+// [3753] Total Waviness of Numbers in Range II
+//
+// @lc code=start
 class Solution {
-    private Long[][][][] dp;
-    private String num;
-    private int len;
-    
     public long totalWaviness(long num1, long num2) {
-        return solve(num2) - solve(num1 - 1);
+        return solve(num2) - (num1 > 0 ? solve(num1 - 1) : 0);
     }
     
-    private long solve(long n) {
-        if (n < 100) return 0; // Numbers < 100 have waviness 0
+    private long solve(long num) {
+        if (num < 100) return 0; // Numbers with < 3 digits have waviness 0
         
-        num = String.valueOf(n);
-        len = num.length();
-        dp = new Long[len][11][11][2]; // 11 to use index 10 for 'not started'
-        
-        return dfs(0, 10, 10, 1); // 10 represents -1 (not started)
+        String s = String.valueOf(num);
+        int n = s.length();
+        Long[][][][][] memo = new Long[n][11][11][2][2];
+        return dfs(0, -1, -1, 1, 0, s, memo);
     }
     
-    private long dfs(int pos, int prev, int prevPrev, int tight) {
-        if (pos == len) {
+    private long dfs(int pos, int prev, int prev2, int tight, int started, String num, Long[][][][][] memo) {
+        if (pos == num.length()) {
             return 0;
         }
         
-        if (dp[pos][prev][prevPrev][tight] != null) {
-            return dp[pos][prev][prevPrev][tight];
+        int p = prev + 1, pp = prev2 + 1;
+        if (memo[pos][p][pp][tight][started] != null) {
+            return memo[pos][p][pp][tight][started];
         }
         
         int limit = tight == 1 ? (num.charAt(pos) - '0') : 9;
-        long result = 0;
+        long res = 0;
         
-        for (int digit = 0; digit <= limit; digit++) {
-            int newTight = (tight == 1 && digit == limit) ? 1 : 0;
-            
-            long contribution = 0;
-            
-            // Check if prev forms a peak or valley
-            // prev is at position pos-1, which should not be first or last digit
-            // pos >= 2 ensures prev is at position >= 1 (not first)
-            // and since we're building, prev at pos-1 < len-1 (not last)
-            if (prev < 10 && prevPrev < 10 && pos >= 2) {
-                if (prev > prevPrev && prev > digit) {
-                    contribution = 1; // peak
-                } else if (prev < prevPrev && prev < digit) {
-                    contribution = 1; // valley
-                }
-            }
-            
-            if (prev == 10) { // Haven't started yet
-                if (digit == 0) {
-                    // Leading zero, continue without starting
-                    result += dfs(pos + 1, 10, 10, newTight);
-                } else {
-                    // Start the number
-                    result += dfs(pos + 1, digit, 10, newTight);
-                }
-            } else if (prevPrev == 10) {
-                // Second digit
-                result += dfs(pos + 1, digit, prev, newTight);
+        for (int d = 0; d <= limit; d++) {
+            if (started == 0 && d == 0) {
+                // Leading zero
+                res += dfs(pos + 1, -1, -1, 0, 0, num, memo);
             } else {
-                // Third digit onwards
-                result += contribution + dfs(pos + 1, digit, prev, newTight);
+                int newTight = (tight == 1 && d == limit) ? 1 : 0;
+                
+                // Check if prev is a peak or valley
+                long waviness = 0;
+                if (prev != -1 && prev2 != -1) {
+                    if (prev2 < prev && prev > d) {
+                        waviness = 1; // Peak
+                    } else if (prev2 > prev && prev < d) {
+                        waviness = 1; // Valley
+                    }
+                }
+                
+                res += waviness + dfs(pos + 1, d, prev, newTight, 1, num, memo);
             }
         }
         
-        dp[pos][prev][prevPrev][tight] = result;
-        return result;
+        memo[pos][p][pp][tight][started] = res;
+        return res;
     }
 }
-# @lc code=end
+// @lc code=end
