@@ -11,24 +11,24 @@ func totalSteps(nums []int) int {
 		return 0
 	}
 	dp := make([]int, n)
-	stack := []int{}
+	st := []int{}
 	ans := 0
 	for i := 0; i < n; i++ {
-		curMax := 0
-		for len(stack) > 0 && nums[stack[len(stack)-1]] <= nums[i] {
-			j := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			if dp[j] > curMax {
-				curMax = dp[j]
+		maxDel := 0
+		for len(st) > 0 && nums[st[len(st)-1]] <= nums[i] {
+			idx := st[len(st)-1]
+			st = st[:len(st)-1]
+			if dp[idx] > maxDel {
+				maxDel = dp[idx]
 			}
 		}
-		if len(stack) > 0 {
-			dp[i] = curMax + 1
-			if dp[i] > ans {
-				ans = dp[i]
-			}
+		if len(st) > 0 {
+			dp[i] = maxDel + 1
 		}
-		stack = append(stack, i)
+		if dp[i] > ans {
+			ans = dp[i]
+		}
+		st = append(st, i)
 	}
 	return ans
 }
