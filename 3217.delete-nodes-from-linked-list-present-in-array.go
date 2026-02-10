@@ -3,38 +3,29 @@
 #
 # [3217] Delete Nodes From Linked List Present in Array
 #
+
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* type ListNode struct {
-*     Val int
-*     Next *ListNode
-* }
-*/
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
 func modifiedList(nums []int, head *ListNode) *ListNode {
-    // Create a map for O(1) lookup
-    numSet := make(map[int]bool)
+    numsSet := make(map[int]bool)
     for _, num := range nums {
-        numSet[num] = true
+        numsSet[num] = true
     }
-    
-    // Create a dummy node to handle head deletion
-    dummy := &ListNode{Next: head}
+    dummy := &ListNode{Val: 0, Next: head}
     prev := dummy
-    current := head
-    
-    // Traverse the list
-    for current != nil {
-        if numSet[current.Val] {
-            // Skip this node by removing it from the list
-            prev.Next = current.Next
+    for curr := head; curr != nil; curr = curr.Next {
+        if numsSet[curr.Val] {
+            prev.Next = curr.Next
         } else {
-            // Keep this node, move prev forward
-            prev = current
+            prev = curr
         }
-        current = current.Next
     }
-    
     return dummy.Next
 }
 # @lc code=end
