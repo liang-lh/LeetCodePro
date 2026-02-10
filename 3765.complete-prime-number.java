@@ -6,12 +6,12 @@
 # @lc code=start
 class Solution {
     public boolean completePrime(int num) {
-        String numStr = String.valueOf(num);
-        int len = numStr.length();
+        String s = String.valueOf(num);
+        int len = s.length();
         
         // Check all prefixes
         for (int i = 1; i <= len; i++) {
-            String prefix = numStr.substring(0, i);
+            String prefix = s.substring(0, i);
             int prefixNum = Integer.parseInt(prefix);
             if (!isPrime(prefixNum)) {
                 return false;
@@ -20,7 +20,7 @@ class Solution {
         
         // Check all suffixes
         for (int i = 0; i < len; i++) {
-            String suffix = numStr.substring(i);
+            String suffix = s.substring(i);
             int suffixNum = Integer.parseInt(suffix);
             if (!isPrime(suffixNum)) {
                 return false;
