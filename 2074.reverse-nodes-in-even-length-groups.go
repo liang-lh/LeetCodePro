@@ -13,35 +13,39 @@
  * }
  */
 func reverseEvenLengthGroups(head *ListNode) *ListNode {
-    dummy := &ListNode{Next: head}
-    prevGroupEnd := dummy
-    groupSize := 1
-    for prevGroupEnd.Next != nil {
-        groupStart := prevGroupEnd.Next
-        groupEnd := groupStart
-        groupLength := 1
-        for groupLength < groupSize && groupEnd.Next != nil {
-            groupEnd = groupEnd.Next
-            groupLength++
-        }
-        nextStart := groupEnd.Next
-        if groupLength % 2 == 0 {
-            revPrev := (*ListNode)(nil)
-            curr := groupStart
-            for curr != nextStart {
-                nextNode := curr.Next
-                curr.Next = revPrev
-                revPrev = curr
-                curr = nextNode
-            }
-            groupStart.Next = nextStart
-            prevGroupEnd.Next = revPrev
-            prevGroupEnd = groupStart
-        } else {
-            prevGroupEnd = groupEnd
-        }
-        groupSize++
-    }
-    return dummy.Next
+	dummy := &ListNode{0, head}
+	prevEnd := dummy
+	groupSize := 1
+	for prevEnd.Next != nil {
+		groupStart := prevEnd.Next
+		cur := groupStart
+		groupLen := 0
+		for groupLen < groupSize && cur != nil {
+			cur = cur.Next
+			groupLen++
+		}
+		if groupLen%2 == 0 {
+			newHead := (*ListNode)(nil)
+			curNode := groupStart
+			for i := 0; i < groupLen; i++ {
+				next := curNode.Next
+				curNode.Next = newHead
+				newHead = curNode
+				curNode = next
+			}
+			prevEnd.Next = newHead
+			groupStart.Next = cur
+			prevEnd = groupStart
+		} else {
+			groupEnd := groupStart
+			for i := 1; i < groupLen; i++ {
+				groupEnd = groupEnd.Next
+			}
+			prevEnd = groupEnd
+		}
+		groupSize++
+	}
+	return dummy.Next
 }
+
 # @lc code=end
