@@ -1,77 +1,94 @@
-//
-// @lc app=leetcode id=3459 lang=golang
-//
-// [3459] Length of Longest V-Shaped Diagonal Segment
-//
-// @lc code=start
+#
+# @lc app=leetcode id=3459 lang=golang
+#
+# [3459] Length of Longest V-Shaped Diagonal Segment
+#
+
+# @lc code=start
 func lenOfVDiagonal(grid [][]int) int {
-    n := len(grid)
-    m := len(grid[0])
-    
-    // Four diagonal directions: (dr, dc)
-    directions := [][]int{{1, 1}, {1, -1}, {-1, -1}, {-1, 1}}
-    
-    // Get expected value at sequence index
-    getExpected := func(idx int) int {
-        if idx == 0 {
-            return 1
-        }
-        // Pattern: 2, 0, 2, 0, ...
-        if (idx-1)%2 == 0 {
-            return 2
-        }
-        return 0
-    }
-    
-    maxLen := 0
-    
-    // Try each cell with value 1 as starting point
-    for i := 0; i < n; i++ {
-        for j := 0; j < m; j++ {
-            if grid[i][j] != 1 {
-                continue
-            }
-            
-            // Try each diagonal direction
-            for _, dir := range directions {
-                dr, dc := dir[0], dir[1]
-                r, c := i, j
-                length := 0
-                
-                // Extend in the first direction
-                for r >= 0 && r < n && c >= 0 && c < m && grid[r][c] == getExpected(length) {
-                    length++
-                    
-                    // Try making a clockwise 90-degree turn at this position
-                    // Clockwise turn: (dr, dc) -> (dc, -dr)
-                    turnDr, turnDc := dc, -dr
-                    tr, tc := r + turnDr, c + turnDc
-                    turnLength := length
-                    
-                    // Extend in the new direction after turn
-                    for tr >= 0 && tr < n && tc >= 0 && tc < m && grid[tr][tc] == getExpected(turnLength) {
-                        turnLength++
-                        tr += turnDr
-                        tc += turnDc
-                    }
-                    
-                    if turnLength > maxLen {
-                        maxLen = turnLength
-                    }
-                    
-                    // Move to next position in first direction
-                    r += dr
-                    c += dc
-                }
-                
-                // Also consider the case without any turn
-                if length > maxLen {
-                    maxLen = length
-                }
-            }
-        }
-    }
-    
-    return maxLen
+	n := len(grid)
+	if n == 0 {
+		return 0
+	}
+	m := len(grid[0])
+	dirs := [4][2]int{{1, 1}, {1, -1}, {-1, -1}, {-1, 1}}
+	maxExtA := make([][][]int, 4)
+	maxExtB := make([][][]int, 4)
+	for i := 0; i < 4; i++ {
+		maxExtA[i] = make([][]int, n)
+		maxExtB[i] = make([][]int, n)
+		for j := 0; j < n; j++ {
+			maxExtA[i][j] = make([]int, m)
+			maxExtB[i][j] = make([]int, m)
+		}
+	}
+	for d := 0; d < 4; d++ {
+		dx := dirs[d][0]
+		dy := dirs[d][1]
+		if dx > 0 {
+			for r := n-1; r >= 0; r-- {
+				for c := 0; c < m; c++ {
+					nr := r + dx
+					nc := c + dy
+					if nr >= 0 && nr < n && nc >= 0 && nc < m {
+						if grid[nr][nc] == 2 {
+							maxExtA[d][r][c] = 1 + maxExtB[d][nr][nc]
+						}
+						if grid[nr][nc] == 0 {
+							maxExtB[d][r][c] = 1 + maxExtA[d][nr][nc]
+						}
+					}
+				}
+			}
+		} else {
+			for r := 0; r < n; r++ {
+				for c := 0; c < m; c++ {
+					nr := r + dx
+					nc := c + dy
+					if nr >= 0 && nr < n && nc >= 0 && nc < m {
+						if grid[nr][nc] == 2 {
+							maxExtA[d][r][c] = 1 + maxExtB[d][nr][nc]
+						}
+						if grid[nr][nc] == 0 {
+							maxExtB[d][r][c] = 1 + maxExtA[d][nr][nc]
+						}
+					}
+				}
+			}
+		}
+	}
+	max := func(a, b int) int {
+		if a > b {
+			return a
+		}
+		return b
+	}
+	ans := 0
+	for r := 0; r < n; r++ {
+		for c := 0; c < m; c++ {
+			if grid[r][c] != 1 {
+				continue
+			}
+			for d := 0; d < 4; d++ {
+				ext := maxExtA[d][r][c]
+				ans = max(ans, 1+ext)
+				dx := dirs[d][0]
+				dy := dirs[d][1]
+				newd := (d + 1) % 4
+				for e1 := 1; e1 <= ext; e1++ {
+					tr := r + e1*dx
+					tc := c + e1*dy
+					var ext2 int
+					if e1%2 == 0 {
+						ext2 = maxExtA[newd][tr][tc]
+					} else {
+						ext2 = maxExtB[newd][tr][tc]
+					}
+					ans = max(ans, 1+e1+ext2)
+				}
+			}
+		}
+	}
+	return ans
 }
-// @lc code=end
+# @lc code=end
