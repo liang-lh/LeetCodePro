@@ -3,43 +3,37 @@
 #
 # [2807] Insert Greatest Common Divisors in Linked List
 #
+
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* type ListNode struct {
-*     Val int
-*     Next *ListNode
-* }
-*/
-
-func gcd(a, b int) int {
-    for b != 0 {
-        a, b = b, a % b
-    }
-    return a
-}
-
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
 func insertGreatestCommonDivisors(head *ListNode) *ListNode {
-    if head == nil || head.Next == nil {
-        return head
-    }
-    
-    current := head
-    for current != nil && current.Next != nil {
-        // Calculate GCD of current and next node values
-        gcdValue := gcd(current.Val, current.Next.Val)
-        
-        // Create new node with GCD value
-        newNode := &ListNode{Val: gcdValue}
-        
-        // Insert new node between current and current.Next
-        newNode.Next = current.Next
-        current.Next = newNode
-        
-        // Move to the next original node (skip the inserted node)
-        current = newNode.Next
-    }
-    
-    return head
+
+	gcd := func(a, b int) int {
+		for b != 0 {
+			a, b = b, a % b
+		}
+		return a
+	}
+
+	if head == nil {
+		return head
+	}
+
+	curr := head
+	for curr.Next != nil {
+		g := gcd(curr.Val, curr.Next.Val)
+		newNode := &ListNode{Val: g}
+		newNode.Next = curr.Next
+		curr.Next = newNode
+		curr = newNode.Next
+	}
+
+	return head
 }
 # @lc code=end
