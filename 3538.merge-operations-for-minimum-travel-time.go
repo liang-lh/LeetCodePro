@@ -3,64 +3,86 @@
 #
 # [3538] Merge Operations for Minimum Travel Time
 #
+
 # @lc code=start
-import "fmt"
+import "math"
 
 func minTravelTime(l int, n int, k int, position []int, time []int) int {
-    memo := make(map[string]int)
-    return solve(position, time, k, memo)
-}
+	prefix := make([]int, n+1)
+	for i := 0; i < n; i++ {
+		prefix[i+1] = prefix[i] + time[i]
+	}
 
-func solve(positions []int, times []int, remaining int, memo map[string]int) int {
-    if remaining == 0 {
-        return calculateCost(positions, times)
-    }
-    
-    key := stateKey(positions, times, remaining)
-    if val, ok := memo[key]; ok {
-        return val
-    }
-    
-    minCost := 1 << 30
-    for i := 1; i < len(positions)-1; i++ {
-        newPos, newTimes := merge(positions, times, i)
-        cost := solve(newPos, newTimes, remaining-1, memo)
-        if cost < minCost {
-            minCost = cost
-        }
-    }
-    
-    memo[key] = minCost
-    return minCost
-}
+	const INF int64 = 1e18
 
-func merge(positions []int, times []int, idx int) ([]int, []int) {
-    n := len(positions)
-    
-    newPos := make([]int, n-1)
-    copy(newPos, positions[:idx])
-    copy(newPos[idx:], positions[idx+1:])
-    
-    newTimes := make([]int, n-1)
-    copy(newTimes, times[:idx])
-    newTimes[idx] = times[idx] + times[idx+1]
-    if idx+2 < n {
-        copy(newTimes[idx+1:], times[idx+2:])
-    }
-    
-    return newPos, newTimes
-}
+	dp := make([][][][]int64, n)
+	for i := range dp {
+		dp[i] = make([][][]int64, n)
+		for j := range dp[i] {
+			dp[i][j] = make([][]int64, k+1)
+			for m := range dp[i][j] {
+				dp[i][j][m] = make([]int64, 101)
+				for ad := range dp[i][j][m] {
+					dp[i][j][m][ad] = INF
+				}
+			}
+		}
+	}
 
-func calculateCost(positions []int, times []int) int {
-    cost := 0
-    for i := 0; i < len(positions)-1; i++ {
-        distance := positions[i+1] - positions[i]
-        cost += distance * times[i]
-    }
-    return cost
-}
+	for i := 0; i < n; i++ {
+		dp[i][i][0][0] = 0
+	}
 
-func stateKey(positions []int, times []int, remaining int) string {
-    return fmt.Sprintf("%v:%v:%d", positions, times, remaining)
+	for length := 2; length <= n; length++ {
+		for L := 0; L <= n-length; L++ {
+			R := L + length - 1
+			maxMerges := k
+			if R - L - 1 < maxMerges {
+				maxMerges = R - L - 1
+			}
+
+			for m := 0; m <= maxMerges; m++ {
+				for Q := L; Q < R; Q++ {
+					rightMerges := R - Q - 1
+					if rightMerges > m {
+						continue
+					}
+					leftMerges := m - rightMerges
+					dist := int64(position[R] - position[Q])
+					var minCost int64 = INF
+					for addedQ := 0; addedQ <= 100; addedQ++ {
+						leftCost := dp[L][Q][leftMerges][addedQ]
+						if leftCost == INF {
+							continue
+						}
+						effTimeQ := int64(time[Q]) + int64(addedQ)
+						cost := leftCost + effTimeQ * dist
+						if cost < minCost {
+							minCost = cost
+						}
+					}
+					if minCost == INF {
+						continue
+					}
+					addedR := prefix[R] - prefix[Q+1]
+					if addedR > 100 {
+						continue
+					}
+					if minCost < dp[L][R][m][addedR] {
+						dp[L][R][m][addedR] = minCost
+					}
+				}
+			}
+		}
+	}
+
+	ans := INF
+	for added := 0; added <= 100; added++ {
+		if dp[0][n-1][k][added] < ans {
+			ans = dp[0][n-1][k][added]
+		}
+	}
+
+	return int(ans)
 }
 # @lc code=end
