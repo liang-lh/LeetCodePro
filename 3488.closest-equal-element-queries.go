@@ -3,60 +3,48 @@
 #
 # [3488] Closest Equal Element Queries
 #
+
 # @lc code=start
 func solveQueries(nums []int, queries []int) []int {
-    n := len(nums)
-    
-    // Build map: value -> list of indices
-    valueToIndices := make(map[int][]int)
-    for i, num := range nums {
-        valueToIndices[num] = append(valueToIndices[num], i)
-    }
-    
-    result := make([]int, len(queries))
-    
-    for i, queryIdx := range queries {
-        value := nums[queryIdx]
-        indices := valueToIndices[value]
-        
-        // If only one occurrence, no other index with same value
-        if len(indices) <= 1 {
-            result[i] = -1
-            continue
-        }
-        
-        minDist := n // Maximum possible distance
-        
-        // Check all other indices with same value
-        for _, idx := range indices {
-            if idx == queryIdx {
-                continue
-            }
-            
-            // Calculate circular distance
-            diff := abs(queryIdx - idx)
-            dist := min(diff, n - diff)
-            
-            minDist = min(minDist, dist)
-        }
-        
-        result[i] = minDist
-    }
-    
-    return result
-}
-
-func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
-}
-
-func abs(x int) int {
-    if x < 0 {
-        return -x
-    }
-    return x
+	min := func(a, b int) int {
+		if a < b {
+			return a
+		}
+		return b
+	}
+	n := len(nums)
+	pos := make(map[int][]int)
+	for i := range nums {
+		pos[nums[i]] = append(pos[nums[i]], i)
+	}
+	ans := make([]int, n)
+	for i := range ans {
+		ans[i] = -1
+	}
+	for _, p := range pos {
+		m := len(p)
+		if m < 2 {
+			continue
+		}
+		for k := 0; k < m; k++ {
+			var left, right int
+			if k == 0 {
+				left = p[0] + n - p[m-1]
+			} else {
+				left = p[k] - p[k-1]
+			}
+			if k == m-1 {
+				right = p[0] + n - p[m-1]
+			} else {
+				right = p[k+1] - p[k]
+			}
+			ans[p[k]] = min(left, right)
+		}
+	}
+	result := make([]int, len(queries))
+	for i, q := range queries {
+		result[i] = ans[q]
+	}
+	return result
 }
 # @lc code=end
