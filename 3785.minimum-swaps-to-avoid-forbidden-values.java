@@ -1,0 +1,1 @@
+[Apply the reasoning process above to solve this specific task, then output the actual solution in the required format]
