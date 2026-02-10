@@ -1,25 +1,52 @@
-CRITICAL - READ THIS FIRST: These steps are YOUR INTERNAL THINKING PROCESS, NOT your output. DO NOT write these steps as your answer. Your output must BE the actual solution: working code that runs, a calculated number, a completed analysis - NOT instructions about how to create one.
+#
+# @lc app=leetcode id=3445 lang=golang
+#
+# [3445] Maximum Difference Between Even and Odd Frequency II
+#
 
-ANTI-PATTERN (DO NOT DO THIS):
-❌ WRONG OUTPUT: "Step 1: Understand the problem... Step 7: Submit solution"
-✓ CORRECT OUTPUT: Actual executable code with reasoning, OR the final calculated answer, OR the completed written analysis
-
-Step 1: Identify THIS Task - Read what is being asked RIGHT NOW. What specific deliverable must you produce? Code? A number? Written analysis? What format is required? Answer these questions before proceeding.
-
-Step 2: Extract Key Information - From THIS specific problem: inputs/outputs, constraints, provided examples, edge cases mentioned. Focus only on what's relevant to solving THIS task.
-
-Step 3: Design Your Approach - For THIS problem: List 2-3 possible solution methods, evaluate against constraints, select the best approach for THIS specific case.
-
-Step 4: NOW WRITE THE ACTUAL SOLUTION - Stop planning. Start producing. Write the actual code, calculate the actual answer, or complete the actual analysis. This step produces the deliverable, not descriptions of it.
-
-Step 5: Test Against Examples - Run your solution through provided examples. Does it produce correct output? If not, debug and fix your solution immediately.
-
-Step 6: Verify Output Format - Check against requirements: Valid syntax? Matches template structure? In requested format (JSON, code, etc.)? Fix any format issues.
-
-Step 7: FINAL REALITY CHECK - Before submitting, STOP and examine what you wrote:
-- Is it executable code OR a concrete answer, or is it instructions?
-- If someone receives this, can they directly use it to solve the task?
-- Does it solve THIS specific task, or does it describe how to solve tasks in general?
-If you see methodology steps or instructions, DELETE them immediately and write the actual solution instead.
-
-REMEMBER: Your output must BE the solution itself, not a process for creating it. The solution is code that runs, a number that answers the question, or analysis that completes the task.
+# @lc code=start
+func maxDifference(s string, k int) int {
+	const (
+		INF  = 30005
+		MINF = -30005
+	)
+	n := len(s)
+	ans := MINF
+	freq := [5]int{}
+	for l := 0; l < n; l++ {
+		for i := 0; i < 5; i++ {
+			freq[i] = 0
+		}
+		for r := l; r < n; r++ {
+			c := int(s[r] - '0')
+			freq[c]++
+			if r - l + 1 >= k {
+				mxo := 0
+				mne := INF
+				for cc := 0; cc < 5; cc++ {
+					f := freq[cc]
+					if f&1 == 1 {
+						if f > mxo {
+							mxo = f
+						}
+					}
+					if f&1 == 0 && f >= 2 {
+						if f < mne {
+							mne = f
+						}
+					}
+				}
+				if mxo > 0 && mne < INF {
+					if mxo - mne > ans {
+						ans = mxo - mne
+					}
+				}
+			}
+		}
+	}
+	if ans == MINF {
+		return -1
+	}
+	return ans
+}
+# @lc code=end
