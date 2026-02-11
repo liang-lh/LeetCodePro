@@ -1,58 +1,102 @@
-============================================================
-THESE ARE YOUR PRIVATE EXECUTION INSTRUCTIONS - NOT OUTPUT
-============================================================
-Follow these steps INTERNALLY. After completing all steps, you will output ONLY the specific deliverable requested by the task (e.g., working code, concrete answer, or detailed analysis). You will NOT output these instruction steps.
+#
+# @lc app=leetcode id=3534 lang=java
+#
+# [3534] Path Existence Queries in a Graph II
+#
 
-Step 1: Understand THIS specific task
-- Read the problem statement completely
-- Identify: What specific question is being asked? What are the inputs? What output format is required?
-- Extract all constraints and requirements for THIS particular task
+# @lc code=start
+class Solution {
+  public int[] pathExistenceQueries(int n, int[] nums, int maxDiff, int[][] queries) {
+    int m = queries.length;
+    int[] answer = new int[m];
 
-Step 1.5: Deliverable identification checkpoint
-- State explicitly: "What specific deliverable must I produce?" (code in X language? numerical answer? written analysis?)
-- Verify: "Am I clear on what format/language the output must use?"
-- If unclear, re-read the task requirements before proceeding
+    // Compute sorted order by nums
+    int[] order = new int[n];
+    for (int i = 0; i < n; ++i) order[i] = i;
+    java.util.Arrays.sort(order, (int x, int y) -> Integer.compare(nums[x], nums[y]));
 
-Step 2: Analyze THIS task's constraints
-- Review the specific input limits provided
-- Calculate: What time/space complexity is needed? What's the maximum operation count?
-- Determine which approaches are viable given these specific constraints
+    int[] pos = new int[n];
+    for (int i = 0; i < n; ++i) {
+      pos[order[i]] = i;
+    }
 
-Step 3: Design solution strategy for THIS task
-- Propose a concrete algorithm/approach for THIS specific problem
-- Validate immediately: Will this work with the given constraints? What's the complexity?
-- If approach fails validation, redesign before proceeding
+    // Compute R[i]: farthest right directly reachable
+    int[] R = new int[n];
+    int jj = 0;
+    for (int i = 0; i < n; ++i) {
+      while (jj < n && (long) nums[order[jj]] <= (long) nums[order[i]] + maxDiff) {
+        ++jj;
+      }
+      R[i] = jj - 1;
+    }
 
-Reality check: Am I designing a solution to THIS specific task, or am I discussing/manipulating these instruction steps? (Must be: solving the task)
+    // Binary lifting for farthest reach with 2^k jumps
+    final int LOG = 18;
+    int[][] far = new int[LOG][n];
+    for (int i = 0; i < n; ++i) {
+      far[0][i] = R[i];
+    }
+    for (int k = 1; k < LOG; ++k) {
+      for (int i = 0; i < n; ++i) {
+        int mid = far[k - 1][i];
+        far[k][i] = (mid < n ? far[k - 1][mid] : n - 1);
+      }
+    }
 
-Step 4: Identify THIS task's edge cases
-- Based on THIS problem's description and constraints, list specific edge cases
-- For each edge case: verify your approach handles it correctly
-- Adjust approach if any edge case would cause failure
+    // Compute components
+    int[] comp = new int[n];
+    if (n > 0) {
+      comp[order[0]] = 0;
+      int cid = 0;
+      for (int i = 1; i < n; ++i) {
+        if ((long) nums[order[i]] - nums[order[i - 1]] > maxDiff) {
+          ++cid;
+        }
+        comp[order[i]] = cid;
+      }
+    }
 
-Step 5: Implement the actual solution
-- Write the complete, executable solution in the required language/format
-- Match the provided template structure exactly
-- Ensure all imports, syntax, and structure are correct
-
-Pre-validation check: Look at what I'm about to output. Is it:
-- The deliverable requested by the task? → Correct, proceed to Step 5.5
-- These instruction steps or methodology? → STOP, I've made an error - restart from Step 1
-
-Step 5.5: MANDATORY OUTPUT CHECK
-⚠️ STOP - Before proceeding, verify:
-- Am I about to output INSTRUCTIONS/METHODOLOGY/PROCESS STEPS? → WRONG - I must solve the task instead
-- Am I about to output my ACTUAL SOLUTION (code/answer/analysis) for THIS specific task? → CORRECT - proceed to Step 6
-If unclear, ask: "Would someone be able to submit/use my output directly to solve this task?" If no, I've failed.
-
-Step 6: Pre-submission verification (ALL must be YES)
-(a) Reasoning field: Does it explain MY SPECIFIC APPROACH to THIS task (not generic methodology)?
-(b) Result field: Does it contain EXECUTABLE/USABLE solution (code/answer/analysis), NOT process instructions?
-(c) Format & Language: Is my output in the EXACT language/format specified by the task? (If task requires Java code, output must be Java code; if Python, must be Python; etc.) Does it match the required structure precisely?
-(d) Edge cases: Does my solution handle ALL edge cases I identified?
-(e) Complexity: Have I verified my solution works within all given constraints?
-(f) FINAL VALIDATION: Read your complete output and answer:
-    - "Does this solve the SPECIFIC task given?" → Must be YES
-    - "Is this advice about how to solve tasks?" → Must be NO
-    - "Could someone directly use/submit this output?" → Must be YES
-    If any check fails, DO NOT OUTPUT - restart from Step 1 and solve the actual task.
+    // Process each query
+    for (int qi = 0; qi < m; ++qi) {
+      int u = queries[qi][0];
+      int v = queries[qi][1];
+      if (u == v) {
+        answer[qi] = 0;
+        continue;
+      }
+      if (comp[u] != comp[v]) {
+        answer[qi] = -1;
+        continue;
+      }
+      int pa = pos[u];
+      int pb = pos[v];
+      if (pa > pb) {
+        int tmp = pa;
+        pa = pb;
+        pb = tmp;
+      }
+      // Binary search minimal d
+      int left = 1;
+      int right = pb - pa;
+      int minD = right;
+      while (left <= right) {
+        int md = left + (right - left) / 2;
+        int curr = pa;
+        for (int k = LOG - 1; k >= 0; --k) {
+          if ((md & (1 << k)) != 0) {
+            curr = far[k][curr];
+          }
+        }
+        if (curr >= pb) {
+          minD = md;
+          right = md - 1;
+        } else {
+          left = md + 1;
+        }
+      }
+      answer[qi] = minD;
+    }
+    return answer;
+  }
+}
+# @lc code=end
