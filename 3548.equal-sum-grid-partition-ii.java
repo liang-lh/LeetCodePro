@@ -3,151 +3,131 @@
 #
 # [3548] Equal Sum Grid Partition II
 #
-# @lc code=start
-import java.util.*;
 
+# @lc code=start
 class Solution {
     public boolean canPartitionGrid(int[][] grid) {
         int m = grid.length;
         int n = grid[0].length;
-        
-        // Try horizontal cuts
-        for (int cut = 0; cut < m - 1; cut++) {
-            if (tryHorizontalCut(grid, cut)) {
-                return true;
-            }
-        }
-        
-        // Try vertical cuts
-        for (int cut = 0; cut < n - 1; cut++) {
-            if (tryVerticalCut(grid, cut)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    private boolean tryHorizontalCut(int[][] grid, int cut) {
-        int m = grid.length;
-        int n = grid[0].length;
-        
-        long topSum = 0, bottomSum = 0;
-        
-        for (int i = 0; i <= cut; i++) {
-            for (int j = 0; j < n; j++) {
-                topSum += grid[i][j];
-            }
-        }
-        
-        for (int i = cut + 1; i < m; i++) {
-            for (int j = 0; j < n; j++) {
-                bottomSum += grid[i][j];
-            }
-        }
-        
-        if (topSum == bottomSum) {
-            return true;
-        }
-        
-        if (canDiscountFromSection(grid, 0, cut, 0, n - 1, topSum - bottomSum)) {
-            return true;
-        }
-        
-        if (canDiscountFromSection(grid, cut + 1, m - 1, 0, n - 1, bottomSum - topSum)) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    private boolean tryVerticalCut(int[][] grid, int cut) {
-        int m = grid.length;
-        int n = grid[0].length;
-        
-        long leftSum = 0, rightSum = 0;
-        
+        long total = 0;
         for (int i = 0; i < m; i++) {
-            for (int j = 0; j <= cut; j++) {
-                leftSum += grid[i][j];
+            for (int j = 0; j < n; j++) {
+                total += grid[i][j];
             }
         }
-        
+        long[] prefixRow = new long[m + 1];
+        long[] rowSum = new long[m];
         for (int i = 0; i < m; i++) {
-            for (int j = cut + 1; j < n; j++) {
-                rightSum += grid[i][j];
+            for (int j = 0; j < n; j++) {
+                rowSum[i] += grid[i][j];
+            }
+            prefixRow[i + 1] = prefixRow[i] + rowSum[i];
+        }
+        long[] prefixCol = new long[n + 1];
+        long[] colSum = new long[n];
+        for (int j = 0; j < n; j++) {
+            for (int i = 0; i < m; i++) {
+                colSum[j] += grid[i][j];
+            }
+            prefixCol[j + 1] = prefixCol[j] + colSum[j];
+        }
+        final int MAXV = 100000;
+        int[] minR = new int[MAXV + 1];
+        int[] maxR = new int[MAXV + 1];
+        int[] minC = new int[MAXV + 1];
+        int[] maxC = new int[MAXV + 1];
+        for (int v = 0; v <= MAXV; v++) {
+            minR[v] = m + 1;
+            maxR[v] = -1;
+            minC[v] = n + 1;
+            maxC[v] = -1;
+        }
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                int v = grid[i][j];
+                minR[v] = Math.min(minR[v], i);
+                maxR[v] = Math.max(maxR[v], i);
+                minC[v] = Math.min(minC[v], j);
+                maxC[v] = Math.max(maxC[v], j);
             }
         }
-        
-        if (leftSum == rightSum) {
-            return true;
+        // Horizontal cuts
+        for (int k = 1; k < m; k++) {
+            long sum1 = prefixRow[k];
+            long sum2 = total - sum1;
+            if (sum1 == sum2) return true;
+            // Discount from top
+            if (sum1 > sum2) {
+                long dif = sum1 - sum2;
+                if (dif > MAXV) continue;
+                int d = (int) dif;
+                int rr = k, cc = n;
+                boolean ok = false;
+                if (rr >= 2 && cc >= 2) {
+                    if (minR[d] < k) ok = true;
+                } else if (rr == 1 && cc >= 2) {
+                    if (grid[0][0] == d || grid[0][n - 1] == d) ok = true;
+                } else if (cc == 1 && rr >= 2) {
+                    if (grid[0][0] == d || grid[k - 1][0] == d) ok = true;
+                }
+                if (ok) return true;
+            }
+            // Discount from bot
+            if (sum2 > sum1) {
+                long dif = sum2 - sum1;
+                if (dif > MAXV) continue;
+                int d = (int) dif;
+                int rr = m - k, cc = n;
+                boolean ok = false;
+                if (rr >= 2 && cc >= 2) {
+                    if (maxR[d] >= k) ok = true;
+                } else if (rr == 1 && cc >= 2) {
+                    if (grid[k][0] == d || grid[k][n - 1] == d) ok = true;
+                } else if (cc == 1 && rr >= 2) {
+                    if (grid[k][0] == d || grid[m - 1][0] == d) ok = true;
+                }
+                if (ok) return true;
+            }
         }
-        
-        if (canDiscountFromSection(grid, 0, m - 1, 0, cut, leftSum - rightSum)) {
-            return true;
+        // Vertical cuts
+        for (int k = 1; k < n; k++) {
+            long sum1 = prefixCol[k];
+            long sum2 = total - sum1;
+            if (sum1 == sum2) return true;
+            // Discount from left
+            if (sum1 > sum2) {
+                long dif = sum1 - sum2;
+                if (dif > MAXV) continue;
+                int d = (int) dif;
+                int rr = m, cc = k;
+                boolean ok = false;
+                if (rr >= 2 && cc >= 2) {
+                    if (minC[d] < k) ok = true;
+                } else if (rr == 1 && cc >= 2) {
+                    if (grid[0][0] == d || grid[0][k - 1] == d) ok = true;
+                } else if (cc == 1 && rr >= 2) {
+                    if (grid[0][0] == d || grid[m - 1][0] == d) ok = true;
+                }
+                if (ok) return true;
+            }
+            // Discount from right
+            if (sum2 > sum1) {
+                long dif = sum2 - sum1;
+                if (dif > MAXV) continue;
+                int d = (int) dif;
+                int rr = m, cc = n - k;
+                boolean ok = false;
+                if (rr >= 2 && cc >= 2) {
+                    if (maxC[d] >= k) ok = true;
+                } else if (rr == 1 && cc >= 2) {
+                    if (grid[0][k] == d || grid[0][n - 1] == d) ok = true;
+                } else if (cc == 1 && rr >= 2) {
+                    if (grid[0][k] == d || grid[m - 1][k] == d) ok = true;
+                }
+                if (ok) return true;
+            }
         }
-        
-        if (canDiscountFromSection(grid, 0, m - 1, cut + 1, n - 1, rightSum - leftSum)) {
-            return true;
-        }
-        
         return false;
-    }
-    
-    private boolean canDiscountFromSection(int[][] grid, int r1, int r2, int c1, int c2, long diff) {
-        for (int i = r1; i <= r2; i++) {
-            for (int j = c1; j <= c2; j++) {
-                if (grid[i][j] == diff) {
-                    if (isConnectedAfterRemoval(grid, r1, r2, c1, c2, i, j)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-    
-    private boolean isConnectedAfterRemoval(int[][] grid, int r1, int r2, int c1, int c2, int removeR, int removeC) {
-        int totalCells = (r2 - r1 + 1) * (c2 - c1 + 1) - 1;
-        
-        if (totalCells == 0) {
-            return true;
-        }
-        
-        boolean[][] visited = new boolean[grid.length][grid[0].length];
-        Queue<int[]> queue = new LinkedList<>();
-        
-        boolean found = false;
-        for (int i = r1; i <= r2 && !found; i++) {
-            for (int j = c1; j <= c2 && !found; j++) {
-                if (i != removeR || j != removeC) {
-                    queue.offer(new int[]{i, j});
-                    visited[i][j] = true;
-                    found = true;
-                }
-            }
-        }
-        
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        int count = 0;
-        
-        while (!queue.isEmpty()) {
-            int[] curr = queue.poll();
-            count++;
-            
-            for (int[] dir : dirs) {
-                int ni = curr[0] + dir[0];
-                int nj = curr[1] + dir[1];
-                
-                if (ni >= r1 && ni <= r2 && nj >= c1 && nj <= c2 && 
-                    (ni != removeR || nj != removeC) && !visited[ni][nj]) {
-                    visited[ni][nj] = true;
-                    queue.offer(new int[]{ni, nj});
-                }
-            }
-        }
-        
-        return count == totalCells;
     }
 }
 # @lc code=end
