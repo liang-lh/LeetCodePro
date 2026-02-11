@@ -9,11 +9,19 @@ class Solution {
     public int maxPartitionFactor(int[][] points) {
         int n = points.length;
         if (n == 2) return 0;
+        long maxDist = 0;
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                long dx = Math.abs((long) points[i][0] - points[j][0]);
+                long dy = Math.abs((long) points[i][1] - points[j][1]);
+                maxDist = Math.max(maxDist, dx + dy);
+            }
+        }
         int left = 0;
-        int right = 400000001;
+        int right = (int) maxDist + 1;
         while (left < right) {
             int mid = left + (right - left + 1) / 2;
-            if (check(points, mid)) {
+            if (check(points, mid, n)) {
                 left = mid;
             } else {
                 right = mid - 1;
@@ -22,41 +30,42 @@ class Solution {
         return left;
     }
 
-    private boolean check(int[][] points, int d) {
-        int n = points.length;
-        java.util.List<java.lang.Integer>[] adj = new java.util.ArrayList[n];
-        for (int i = 0; i < n; i++) {
-            adj[i] = new java.util.ArrayList<>();
+    private boolean check(int[][] points, int d, int n) {
+        java.util.List<java.util.List<Integer>> adj = new java.util.ArrayList<>();
+        for (int i = 0; i < n; ++i) {
+            adj.add(new java.util.ArrayList<>());
         }
-        for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
                 long dx = Math.abs((long) points[i][0] - points[j][0]);
                 long dy = Math.abs((long) points[i][1] - points[j][1]);
                 if (dx + dy < d) {
-                    adj[i].add(j);
-                    adj[j].add(i);
+                    adj.get(i).add(j);
+                    adj.get(j).add(i);
                 }
             }
         }
         int[] color = new int[n];
-        java.util.Arrays.fill(color, 0);
-        for (int i = 0; i < n; i++) {
-            if (color[i] == 0) {
-                if (!bfs(i, adj, color)) return false;
+        java.util.Arrays.fill(color, -1);
+        for (int i = 0; i < n; ++i) {
+            if (color[i] == -1) {
+                if (!bfs(i, adj, color)) {
+                    return false;
+                }
             }
         }
         return true;
     }
 
-    private boolean bfs(int start, java.util.List<java.lang.Integer>[] adj, int[] color) {
-        java.util.Queue<java.lang.Integer> q = new java.util.LinkedList<>();
+    private boolean bfs(int start, java.util.List<java.util.List<Integer>> adj, int[] color) {
+        java.util.Queue<Integer> q = new java.util.LinkedList<>();
         q.offer(start);
-        color[start] = 1;
+        color[start] = 0;
         while (!q.isEmpty()) {
             int u = q.poll();
-            for (int v : adj[u]) {
-                if (color[v] == 0) {
-                    color[v] = 3 - color[u];
+            for (int v : adj.get(u)) {
+                if (color[v] == -1) {
+                    color[v] = 1 - color[u];
                     q.offer(v);
                 } else if (color[v] == color[u]) {
                     return false;
