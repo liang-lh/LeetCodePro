@@ -7,66 +7,77 @@
 # @lc code=start
 class Solution {
     public int maxProduct(int[] nums, int k, int limit) {
-        final int OFFSET = 1800;
-        final int MAXS = 3600;
-        int[][] prev = new int[MAXS + 1][2];
-        int[][] curr = new int[MAXS + 1][2];
-        // Initialize prev to -1
-        for (int si = 0; si <= MAXS; si++) {
-            prev[si][0] = -1;
-            prev[si][1] = -1;
+        final int OFFSET = 2000;
+        final int SZ = 4001;
+        int n = nums.length;
+        int[][] dp = new int[SZ][2];
+        // Initialize to exclude empty subsequence
+        for (int j = 0; j < SZ; j++) {
+            dp[j][0] = -1;
+            dp[j][1] = -1;
         }
-        for (int i = 0; i < nums.length; i++) {
+        for (int i = 0; i < n; i++) {
             int val = nums[i];
-            // Reset curr to -1
-            for (int si = 0; si <= MAXS; si++) {
-                curr[si][0] = -1;
-                curr[si][1] = -1;
+            int[][] newdp = new int[SZ][2];
+            for (int j = 0; j < SZ; j++) {
+                newdp[j][0] = -1;
+                newdp[j][1] = -1;
             }
-            // Skip: carry over prev states
-            for (int si = 0; si <= MAXS; si++) {
-                for (int p = 0; p < 2; p++) {
-                    if (prev[si][p] != -1) {
-                        curr[si][p] = Math.max(curr[si][p], prev[si][p]);
+            // carry over (not take)
+            for (int j = 0; j < SZ; j++) {
+                if (dp[j][0] != -1) {
+                    newdp[j][0] = Math.max(newdp[j][0], dp[j][0]);
+                }
+                if (dp[j][1] != -1) {
+                    newdp[j][1] = Math.max(newdp[j][1], dp[j][1]);
+                }
+            }
+            // append from par=0 (+val) -> par=1
+            for (int j = 0; j < SZ; j++) {
+                if (dp[j][0] != -1) {
+                    int sumv = j - OFFSET;
+                    int nsum = sumv + val;
+                    int nj = nsum + OFFSET;
+                    if (nj >= 0 && nj < SZ) {
+                        long nprod = (long) dp[j][0] * val;
+                        if (nprod <= limit) {
+                            newdp[nj][1] = Math.max(newdp[nj][1], (int) nprod);
+                        }
                     }
                 }
             }
-            // Start new subsequence with val
+            // append from par=1 (-val) -> par=0
+            for (int j = 0; j < SZ; j++) {
+                if (dp[j][1] != -1) {
+                    int sumv = j - OFFSET;
+                    int nsum = sumv - val;
+                    int nj = nsum + OFFSET;
+                    if (nj >= 0 && nj < SZ) {
+                        long nprod = (long) dp[j][1] * val;
+                        if (nprod <= limit) {
+                            newdp[nj][0] = Math.max(newdp[nj][0], (int) nprod);
+                        }
+                    }
+                }
+            }
+            // start new subsequence
             if (val <= limit) {
-                int nsi = OFFSET + val;
-                if (nsi >= 0 && nsi <= MAXS) {
-                    curr[nsi][1] = Math.max(curr[nsi][1], val);
+                int nsum = val;
+                int nj = nsum + OFFSET;
+                if (nj >= 0 && nj < SZ) {
+                    newdp[nj][1] = Math.max(newdp[nj][1], val);
                 }
             }
-            // Append val to prev states
-            for (int si = 0; si <= MAXS; si++) {
-                for (int p = 0; p < 2; p++) {
-                    if (prev[si][p] == -1) continue;
-                    long nprod = (long) prev[si][p] * val;
-                    if (nprod > limit) continue;
-                    int delta = (p == 0 ? val : -val);
-                    int newsi = si + delta;
-                    if (newsi < 0 || newsi > MAXS) continue;
-                    int np = 1 - p;
-                    curr[newsi][np] = Math.max(curr[newsi][np], (int) nprod);
-                }
-            }
-            // Swap: copy curr to prev
-            for (int si = 0; si <= MAXS; si++) {
-                for (int p = 0; p < 2; p++) {
-                    prev[si][p] = curr[si][p];
-                }
-            }
+            dp = newdp;
         }
-        // Find max at target sum
-        int target = OFFSET + k;
+        int target = k + OFFSET;
         int ans = -1;
-        if (target >= 0 && target <= MAXS) {
-            if (prev[target][0] != -1) {
-                ans = Math.max(ans, prev[target][0]);
+        if (target >= 0 && target < SZ) {
+            if (dp[target][0] != -1) {
+                ans = Math.max(ans, dp[target][0]);
             }
-            if (prev[target][1] != -1) {
-                ans = Math.max(ans, prev[target][1]);
+            if (dp[target][1] != -1) {
+                ans = Math.max(ans, dp[target][1]);
             }
         }
         return ans;
