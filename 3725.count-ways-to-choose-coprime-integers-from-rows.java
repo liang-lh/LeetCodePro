@@ -7,28 +7,22 @@
 # @lc code=start
 class Solution {
     public int countCoprime(int[][] mat) {
-        final int MOD = 1000000007;
-        int m = mat.length;
-        if (m == 0) return 0;
-        int maxv = 0;
-        for (int[] row : mat) {
-            for (int num : row) {
-                maxv = Math.max(maxv, num);
-            }
-        }
-        int[] mu = new int[maxv + 1];
-        boolean[] vis = new boolean[maxv + 1];
-        int[] primes = new int[maxv + 1];
-        int pc = 0;
+        final int MAX = 150;
+        final long MOD = 1000000007L;
+
+        int[] mu = new int[MAX + 1];
+        boolean[] vis = new boolean[MAX + 1];
+        int[] primes = new int[MAX + 1];
+        int pcnt = 0;
         mu[1] = 1;
-        for (int i = 2; i <= maxv; ++i) {
+        for (int i = 2; i <= MAX; i++) {
             if (!vis[i]) {
-                primes[pc++] = i;
+                primes[pcnt++] = i;
                 mu[i] = -1;
             }
-            for (int j = 0; j < pc; ++j) {
+            for (int j = 0; j < pcnt; j++) {
                 int p = primes[j];
-                if ((long) i * p > maxv) break;
+                if ((long) i * p > MAX) break;
                 vis[i * p] = true;
                 if (i % p == 0) {
                     mu[i * p] = 0;
@@ -38,25 +32,24 @@ class Solution {
                 }
             }
         }
+
+        int m = mat.length;
         long ans = 0;
-        for (int d = 1; d <= maxv; ++d) {
+        for (int d = 1; d <= MAX; d++) {
             if (mu[d] == 0) continue;
             long ways = 1;
-            boolean zero = false;
-            for (int[] row : mat) {
-                int c = 0;
-                for (int num : row) {
-                    if (num % d == 0) ++c;
+            for (int r = 0; r < m; r++) {
+                int cnt = 0;
+                for (int num : mat[r]) {
+                    if (num % d == 0) cnt++;
                 }
-                ways = ways * c % MOD;
-                if (c == 0) {
-                    zero = true;
-                    break;
-                }
+                ways = ways * cnt % MOD;
             }
-            if (zero) continue;
-            long contrib = (long) mu[d] * ways % MOD;
-            ans = (ans + contrib + MOD) % MOD;
+            if (mu[d] == 1) {
+                ans = (ans + ways) % MOD;
+            } else {
+                ans = (ans - ways + MOD) % MOD;
+            }
         }
         return (int) ans;
     }
