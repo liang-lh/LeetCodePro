@@ -1,7 +1,26 @@
-Study the problem and trace through the examples carefully. Understand what behavior is required, design an algorithm that handles all cases, implement it completely, and verify your solution works.
+#
+# @lc app=leetcode id=3779 lang=java
+#
+# [3779] Minimum Number of Operations to Have Distinct Elements
+#
 
-JSON output:
-- "reasoning": Your analysis of this specific problem, your solution approach, and how you verified correctness
-- "result": Complete, executable code matching the template exactly, fully implemented without gaps
+# @lc code=start
+import java.util.*;
 
-Focus on solving the presented problem. Produce working code that runs immediately.
+class Solution {
+    public int minOperations(int[] nums) {
+        int n = nums.length;
+        Map<Integer, List<Integer>> posMap = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            posMap.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);
+        }
+        int maxStart = 0;
+        for (List<Integer> positions : posMap.values()) {
+            if (positions.size() >= 2) {
+                maxStart = Math.max(maxStart, positions.get(positions.size() - 2) + 1);
+            }
+        }
+        return (maxStart + 2) / 3;
+    }
+}
+# @lc code=end
