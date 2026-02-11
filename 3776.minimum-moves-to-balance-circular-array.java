@@ -3,57 +3,45 @@
 #
 # [3776] Minimum Moves to Balance Circular Array
 #
-# @lc code=start
-import java.util.*;
 
+# @lc code=start
 class Solution {
     public long minMoves(int[] balance) {
         int n = balance.length;
-        long sum = 0;
+        long total = 0;
         int negIdx = -1;
-        
-        // Find negative index and calculate sum
+        long deficit = 0;
         for (int i = 0; i < n; i++) {
-            sum += balance[i];
+            total += (long) balance[i];
             if (balance[i] < 0) {
                 negIdx = i;
+                deficit = - (long) balance[i];
             }
         }
-        
-        // If sum is negative, impossible
-        if (sum < 0) {
-            return -1;
-        }
-        
-        // If no negative index, already balanced
-        if (negIdx == -1) {
-            return 0;
-        }
-        
-        long needed = -balance[negIdx];
-        
-        // Create list of (distance, amount) pairs
-        List<long[]> sources = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            if (i != negIdx && balance[i] > 0) {
-                int dist = Math.min(Math.abs(i - negIdx), n - Math.abs(i - negIdx));
-                sources.add(new long[]{dist, balance[i]});
+        if (total < 0) return -1;
+        if (negIdx == -1) return 0;
+        int maxDist = n / 2;
+        long[] supplyPerDist = new long[maxDist + 1];
+        for (int j = 0; j < n; j++) {
+            if (j == negIdx) continue;
+            long sup = balance[j];
+            if (sup > 0) {
+                int delta = Math.abs(j - negIdx);
+                int dist = Math.min(delta, n - delta);
+                if (dist < supplyPerDist.length) {
+                    supplyPerDist[dist] += sup;
+                }
             }
         }
-        
-        // Sort by distance (greedy: use closest sources first)
-        sources.sort((a, b) -> Long.compare(a[0], b[0]));
-        
         long moves = 0;
-        for (long[] source : sources) {
-            long dist = source[0];
-            long amount = source[1];
-            long take = Math.min(amount, needed);
-            moves += take * dist;
-            needed -= take;
-            if (needed == 0) break;
+        long remaining = deficit;
+        for (int dist = 1; dist <= maxDist; dist++) {
+            if (remaining <= 0) break;
+            long avail = supplyPerDist[dist];
+            long take = Math.min(remaining, avail);
+            moves += take * (long) dist;
+            remaining -= take;
         }
-        
         return moves;
     }
 }
