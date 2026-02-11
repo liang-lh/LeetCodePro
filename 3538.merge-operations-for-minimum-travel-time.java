@@ -3,72 +3,56 @@
 #
 # [3538] Merge Operations for Minimum Travel Time
 #
-# @lc code=start
-import java.util.*;
 
+# @lc code=start
 class Solution {
-    int[] position;
-    int[] time;
-    Map<String, Integer> memo = new HashMap<>();
-    
     public int minTravelTime(int l, int n, int k, int[] position, int[] time) {
-        this.position = position;
-        this.time = time;
-        
-        List<Integer> activePos = new ArrayList<>();
+        final int INF = 2000000000;
+        final int MAXR = 101;
+        int[] prefix = new int[n + 1];
         for (int i = 0; i < n; i++) {
-            activePos.add(i);
+            prefix[i + 1] = prefix[i] + time[i];
         }
-        
-        List<Integer> activeTime = new ArrayList<>();
-        for (int t : time) {
-            activeTime.add(t);
+        int[][][] dp = new int[n][k + 1][MAXR];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j <= k; j++) {
+                for (int r = 0; r < MAXR; r++) {
+                    dp[i][j][r] = INF;
+                }
+            }
         }
-        
-        return solve(activePos, activeTime, k);
-    }
-    
-    String getKey(List<Integer> activePos, List<Integer> activeTime, int k) {
-        return activePos.toString() + "|" + activeTime.toString() + "|" + k;
-    }
-    
-    int solve(List<Integer> activePos, List<Integer> activeTime, int k) {
-        if (k == 0) {
-            return calculateCost(activePos, activeTime);
+        if (n > 0 && time[0] < MAXR) {
+            dp[0][0][time[0]] = 0;
         }
-        
-        String key = getKey(activePos, activeTime, k);
-        if (memo.containsKey(key)) {
-            return memo.get(key);
+        for (int p = 0; p < n; p++) {
+            for (int j = 0; j <= k; j++) {
+                for (int r = 0; r < MAXR; r++) {
+                    if (dp[p][j][r] == INF) continue;
+                    for (int i = p + 1; i < n; i++) {
+                        int merges_add = i - p - 1;
+                        if (j + merges_add > k) break;
+                        long dist = (long) position[i] - position[p];
+                        long added_cost = dist * r;
+                        long temp = (long) dp[p][j][r] + added_cost;
+                        if (temp >= INF) continue;
+                        int new_cost = (int) temp;
+                        int new_r = prefix[i + 1] - prefix[p + 1];
+                        if (new_r < 0 || new_r >= MAXR) continue;
+                        int nj = j + merges_add;
+                        if (new_cost < dp[i][nj][new_r]) {
+                            dp[i][nj][new_r] = new_cost;
+                        }
+                    }
+                }
+            }
         }
-        
-        int minCost = Integer.MAX_VALUE;
-        
-        for (int i = 1; i < activePos.size() - 1; i++) {
-            List<Integer> newPos = new ArrayList<>(activePos);
-            List<Integer> newTime = new ArrayList<>(activeTime);
-            
-            newPos.remove(i);
-            int combined = newTime.get(i) + newTime.get(i + 1);
-            newTime.set(i + 1, combined);
-            newTime.remove(i);
-            
-            minCost = Math.min(minCost, solve(newPos, newTime, k - 1));
+        int ans = INF;
+        for (int r = 0; r < MAXR; r++) {
+            if (dp[n - 1][k][r] < ans) {
+                ans = dp[n - 1][k][r];
+            }
         }
-        
-        memo.put(key, minCost);
-        return minCost;
-    }
-    
-    int calculateCost(List<Integer> activePos, List<Integer> activeTime) {
-        int cost = 0;
-        for (int i = 0; i < activePos.size() - 1; i++) {
-            int pos1 = activePos.get(i);
-            int pos2 = activePos.get(i + 1);
-            int dist = position[pos2] - position[pos1];
-            cost += dist * activeTime.get(i);
-        }
-        return cost;
+        return ans;
     }
 }
 # @lc code=end
