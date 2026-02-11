@@ -5,67 +5,48 @@
 #
 
 # @lc code=start
-import java.util.*;
-
 class Solution {
     public int minSwaps(int[] nums, int[] forbidden) {
         int n = nums.length;
-        Map<Integer, Integer> num_freq = new HashMap<>();
-        Map<Integer, Integer> forb_freq = new HashMap<>();
-        Map<Integer, Integer> bad_freq = new HashMap<>();
-        int num_bad = 0;
-        for (int i = 0; i < n; i++) {
-            num_freq.put(nums[i], num_freq.getOrDefault(nums[i], 0) + 1);
-            forb_freq.put(forbidden[i], forb_freq.getOrDefault(forbidden[i], 0) + 1);
-            if (nums[i] == forbidden[i]) {
-                bad_freq.put(nums[i], bad_freq.getOrDefault(nums[i], 0) + 1);
-                num_bad++;
-            }
+        java.util.Map<Integer, Integer> numFreq = new java.util.HashMap<>();
+        for (int num : nums) {
+            numFreq.put(num, numFreq.getOrDefault(num, 0) + 1);
         }
-        // Feasibility check: Hall's condition for bipartite matching
-        Set<Integer> allValues = new HashSet<>(num_freq.keySet());
-        allValues.addAll(forb_freq.keySet());
-        for (int v : allValues) {
-            int nf = num_freq.getOrDefault(v, 0);
-            int ff = forb_freq.getOrDefault(v, 0);
-            if (nf + ff > n) {
+        java.util.Map<Integer, Integer> forbFreq = new java.util.HashMap<>();
+        for (int f : forbidden) {
+            forbFreq.put(f, forbFreq.getOrDefault(f, 0) + 1);
+        }
+        for (int v : forbFreq.keySet()) {
+            int p = forbFreq.get(v);
+            int fnum = numFreq.getOrDefault(v, 0);
+            if (p > n - fnum) {
                 return -1;
             }
         }
-        if (num_bad == 0) {
+        java.util.Map<Integer, Integer> badFreq = new java.util.HashMap<>();
+        int totalBad = 0;
+        for (int i = 0; i < n; i++) {
+            if (nums[i] == forbidden[i]) {
+                int v = nums[i];
+                badFreq.put(v, badFreq.getOrDefault(v, 0) + 1);
+                totalBad++;
+            }
+        }
+        if (totalBad == 0) {
             return 0;
         }
-        int max_bad_freq = 0;
-        int max_bad_v = 0;
-        for (Map.Entry<Integer, Integer> e : bad_freq.entrySet()) {
-            int f = e.getValue();
-            if (f > max_bad_freq) {
-                max_bad_freq = f;
-                max_bad_v = e.getKey();
-            }
+        int maxBad = 0;
+        for (int cnt : badFreq.values()) {
+            maxBad = Math.max(maxBad, cnt);
         }
-        int max_pairs = Math.min(num_bad / 2, num_bad - max_bad_freq);
-        int leftover = num_bad - 2 * max_pairs;
-        int ans = num_bad - max_pairs;
-        if (leftover == 0) {
-            return ans;
-        }
-        boolean possible = false;
-        if (max_pairs == num_bad / 2) {
-            // Small case: internal cycle cover possible
-            possible = true;
+        int pairs;
+        if (maxBad <= totalBad - maxBad) {
+            pairs = totalBad / 2;
         } else {
-            // Large case: check suitable goods for max_bad_v
-            int v = max_bad_v;
-            int bf = bad_freq.get(v);
-            int g_num = num_freq.getOrDefault(v, 0) - bf;
-            int g_forb = forb_freq.getOrDefault(v, 0) - bf;
-            int suit = (n - num_bad) - g_num - g_forb;
-            if (suit >= leftover) {
-                possible = true;
-            }
+            pairs = totalBad - maxBad;
         }
-        return possible ? ans : -1;
+        int ans = totalBad - pairs;
+        return ans;
     }
 }
 # @lc code=end
