@@ -3,78 +3,83 @@
 #
 # [3621] Number of Integers With Popcount-Depth Equal to K I
 #
-# @lc code=start
-import java.util.*;
 
+# @lc code=start
 class Solution {
-    private Long[][][] memo;
-    
+    private static final int MAX_LOG = 60;
+    private static final int MAX_POP = 64;
+    private long[][][] memo;
+    private int[] digits;
+    private int targetCnt;
+
+    private int getDepth(int x) {
+        int d = 0;
+        while (x != 1) {
+            x = Integer.bitCount(x);
+            d++;
+        }
+        return d;
+    }
+
+    private long dfs(int pos, int cnt, int tight) {
+        if (pos == MAX_LOG) {
+            return cnt == targetCnt ? 1L : 0L;
+        }
+        if (cnt > targetCnt) {
+            return 0L;
+        }
+        if (tight == 0 && memo[pos][cnt][0] != -1L) {
+            return memo[pos][cnt][0];
+        }
+        long res = 0L;
+        int lim = tight == 1 ? digits[pos] : 1;
+        for (int d = 0; d <= lim; d++) {
+            int newCnt = cnt + d;
+            if (newCnt > targetCnt) continue;
+            int newTight = (tight == 1 && d == lim) ? 1 : 0;
+            res += dfs(pos + 1, newCnt, newTight);
+        }
+        if (tight == 0) {
+            memo[pos][cnt][0] = res;
+        }
+        return res;
+    }
+
+    private long countNumbers(long num, int pop) {
+        if (num <= 0 || pop == 0) return 0L;
+        targetCnt = pop;
+        digits = new int[MAX_LOG];
+        for (int i = 0; i < MAX_LOG; i++) {
+            digits[i] = (int) ((num >> (MAX_LOG - 1 - i)) & 1L);
+        }
+        memo = new long[MAX_LOG][MAX_POP + 1][2];
+        for (int i = 0; i < MAX_LOG; i++) {
+            for (int j = 0; j <= MAX_POP; j++) {
+                memo[i][j][0] = -1L;
+                memo[i][j][1] = -1L;
+            }
+        }
+        return dfs(0, 0, 1);
+    }
+
     public long popcountDepth(long n, int k) {
-        // Precompute depth for each possible popcount value
-        int[] depth = new int[65];
-        depth[1] = 0;
-        for (int i = 2; i <= 64; i++) {
-            depth[i] = 1 + depth[Integer.bitCount(i)];
-        }
-        
-        // Special case: k = 0
         if (k == 0) {
-            return n >= 1 ? 1 : 0;
+            return 1L;
         }
-        
-        // Find all popcount values with depth k-1
-        List<Integer> validPopcounts = new ArrayList<>();
-        for (int pc = 1; pc <= 64; pc++) {
-            if (depth[pc] == k - 1) {
-                validPopcounts.add(pc);
+        int[] depths = new int[MAX_POP + 1];
+        for (int i = 1; i <= MAX_POP; i++) {
+            depths[i] = getDepth(i);
+        }
+        long answer = 0L;
+        for (int s = 1; s <= MAX_POP; s++) {
+            if (depths[s] == k - 1) {
+                answer += countNumbers(n, s);
             }
         }
-        
-        if (validPopcounts.isEmpty()) {
-            return 0;
+        if (k == 1) {
+            answer -= 1L;
         }
-        
-        // Count numbers in [1, n] with these popcounts using digit DP
-        long result = 0;
-        for (int targetPc : validPopcounts) {
-            long count = countNumbersWithPopcount(n, targetPc);
-            if (targetPc == 1) {
-                count--; // Exclude x = 1 since it has depth 0
-            }
-            result += count;
-        }
-        
-        return result;
-    }
-    
-    private long countNumbersWithPopcount(long n, int targetPc) {
-        String binary = Long.toBinaryString(n);
-        int len = binary.length();
-        memo = new Long[len][len + 1][2];
-        return dp(binary, 0, 0, true, targetPc);
-    }
-    
-    private long dp(String binary, int pos, int count, boolean tight, int targetPc) {
-        if (count > targetPc) return 0; // Pruning
-        
-        if (pos == binary.length()) {
-            return count == targetPc ? 1 : 0;
-        }
-        
-        int tightIndex = tight ? 1 : 0;
-        if (memo[pos][count][tightIndex] != null) {
-            return memo[pos][count][tightIndex];
-        }
-        
-        int limit = tight ? (binary.charAt(pos) - '0') : 1;
-        long result = 0;
-        
-        for (int digit = 0; digit <= limit; digit++) {
-            result += dp(binary, pos + 1, count + digit, tight && (digit == limit), targetPc);
-        }
-        
-        memo[pos][count][tightIndex] = result;
-        return result;
+        return answer;
     }
 }
 # @lc code=end
