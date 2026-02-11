@@ -3,46 +3,41 @@
 #
 # [3488] Closest Equal Element Queries
 #
+
+import java.util.*;
+
 # @lc code=start
 class Solution {
     public List<Integer> solveQueries(int[] nums, int[] queries) {
-        // Build a map from value to list of indices
-        Map<Integer, List<Integer>> valueToIndices = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            valueToIndices.putIfAbsent(nums[i], new ArrayList<>());
-            valueToIndices.get(nums[i]).add(i);
-        }
-        
-        List<Integer> result = new ArrayList<>();
         int n = nums.length;
-        
-        for (int queryIdx : queries) {
-            int value = nums[queryIdx];
-            List<Integer> indices = valueToIndices.get(value);
-            
-            // If only one occurrence (the query index itself)
-            if (indices.size() == 1) {
-                result.add(-1);
-                continue;
-            }
-            
-            // Find minimum circular distance
-            int minDist = Integer.MAX_VALUE;
-            for (int idx : indices) {
-                if (idx == queryIdx) continue;
-                
-                // Calculate circular distance
-                int dist1 = (idx - queryIdx + n) % n;
-                int dist2 = (queryIdx - idx + n) % n;
-                int circularDist = Math.min(dist1, dist2);
-                
-                minDist = Math.min(minDist, circularDist);
-            }
-            
-            result.add(minDist);
+        int[] minDist = new int[n];
+        Arrays.fill(minDist, -1);
+        Map<Integer, List<Integer>> mp = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            mp.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);
         }
-        
-        return result;
+        for (Map.Entry<Integer, List<Integer>> entry : mp.entrySet()) {
+            List<Integer> pos = entry.getValue();
+            int k = pos.size();
+            if (k < 2) continue;
+            for (int i = 0; i < k; i++) {
+                int p = pos.get(i);
+                int lidx = (i - 1 + k) % k;
+                int ridx = (i + 1) % k;
+                int left = pos.get(lidx);
+                int right = pos.get(ridx);
+                int dl = Math.abs(p - left);
+                dl = Math.min(dl, n - dl);
+                int dr = Math.abs(p - right);
+                dr = Math.min(dr, n - dr);
+                minDist[p] = Math.min(dl, dr);
+            }
+        }
+        List<Integer> ans = new ArrayList<>();
+        for (int q : queries) {
+            ans.add(minDist[q]);
+        }
+        return ans;
     }
 }
 # @lc code=end
