@@ -1,29 +1,59 @@
-Step 1: Analyze the problem thoroughly
-- Read and understand the problem statement, examples, and constraints
-- Identify the inputs, expected outputs, and any special requirements
-- Note the programming language and examine the provided template structure
+#
+# @lc app=leetcode id=3544 lang=java
+#
+# [3544] Subtree Inversion Sum
+#
 
-Step 2: Design the solution approach
-- Break down the problem into manageable components
-- Identify the appropriate algorithms, data structures, or patterns to use
-- Plan the implementation structure and consider edge cases
-- Outline the key steps needed to solve the problem
+# @lc code=start
+import java.util.*;
 
-Step 3: Implement the complete solution
-- Write the full, working code implementation (not pseudocode or descriptions)
-- Follow the provided template structure exactly, filling in all required parts
-- Ensure the code is syntactically correct and logically sound
-- Include all necessary components (classes, methods, logic) for a complete solution
+class Solution {
+    private long[][] dp;
+    private List<Integer>[] adj;
+    private int[] nums_arr;
+    private int KK;
 
-Step 4: Structure the output correctly
-- In the "reasoning" field: Place your step-by-step explanation of how you approached and solved the problem
-- In the "result" field: Place the complete, executable code that implements your solution
-- Critical check: "reasoning" should contain explanation text, NOT code
-- Critical check: "result" should contain actual implementation code, NOT text descriptions of the approach
+    public long subtreeInversionSum(int[][] edges, int[] nums, int k) {
+        int n = nums.length;
+        adj = new List[n];
+        for (int i = 0; i < n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+        for (int[] e : edges) {
+            adj[e[0]].add(e[1]);
+            adj[e[1]].add(e[0]);
+        }
+        dp = new long[n][k + 1];
+        nums_arr = nums;
+        KK = k;
+        dfs(0, -1);
+        return dp[0][k];
+    }
 
-Step 5: Verify completeness and format
-- Confirm the code fully implements the designed solution (not partially explained)
-- Verify the output is properly structured JSON with "reasoning" and "result" fields
-- Check that "reasoning" explains the thinking process clearly
-- Check that "result" contains the complete code matching the template
-- Ensure nothing is missing or misplaced between the two fields
+    private void dfs(int u, int par) {
+        List<Integer> children = new ArrayList<>();
+        for (int v : adj[u]) {
+            if (v != par) {
+                dfs(v, u);
+                children.add(v);
+            }
+        }
+        long[] childTotal = new long[KK + 1];
+        for (int t = 1; t <= KK; t++) {
+            for (int v : children) {
+                childTotal[t] += dp[v][t];
+            }
+        }
+        for (int s = 1; s <= KK; s++) {
+            int sch = Math.min(s + 1, KK);
+            long opt1 = (long) nums_arr[u] + childTotal[sch];
+            if (s < KK) {
+                dp[u][s] = opt1;
+            } else {
+                long opt2 = - (long) nums_arr[u] - childTotal[1];
+                dp[u][s] = Math.max(opt1, opt2);
+            }
+        }
+    }
+}
+# @lc code=end
