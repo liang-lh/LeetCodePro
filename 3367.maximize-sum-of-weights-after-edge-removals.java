@@ -3,67 +3,66 @@
 #
 # [3367] Maximize Sum of Weights after Edge Removals
 #
+
+import java.util.*;
+
 # @lc code=start
 class Solution {
-    private List<List<int[]>> adj;
-    private int K;
-    private long[][] dp;
-    
     public long maximizeSumOfWeights(int[][] edges, int k) {
-        K = k;
         int n = edges.length + 1;
-        adj = new ArrayList<>();
+        List<List<int[]>> adj = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            adj.add(new ArrayList<>());
+            adj.add(new ArrayList<>()) ;
         }
-        
-        for (int[] edge : edges) {
-            int u = edge[0], v = edge[1], w = edge[2];
+        for (int[] e : edges) {
+            int u = e[0], v = e[1], w = e[2];
             adj.get(u).add(new int[]{v, w});
             adj.get(v).add(new int[]{u, w});
         }
-        
-        dp = new long[n][2];
-        dfs(0, -1);
-        return dp[0][0];
+        return dfs(0, -1, adj, k)[0];
     }
-    
-    private void dfs(int v, int parent) {
-        List<Long> gains = new ArrayList<>();
-        long baseSum = 0;
-        
-        for (int[] edge : adj.get(v)) {
-            int child = edge[0];
-            int weight = edge[1];
-            if (child == parent) continue;
-            
-            dfs(child, v);
-            baseSum += dp[child][0];
-            long gain = weight + dp[child][1] - dp[child][0];
-            gains.add(gain);
+
+    private long[] dfs(int u, int p, List<List<int[]>> adj, int k) {
+        List<Long> deltas = new ArrayList<>();
+        long C = 0L;
+        for (int[] pair : adj.get(u)) {
+            int v = pair[0];
+            int w = pair[1];
+            if (v == p) continue;
+            long[] res = dfs(v, u, adj, k);
+            C += res[0];
+            long keepv = (long) w + res[1];
+            deltas.add(keepv - res[0]);
         }
-        
-        Collections.sort(gains, Collections.reverseOrder());
-        
-        // dp[v][0]: can use up to k edges
-        dp[v][0] = baseSum;
-        for (int i = 0; i < Math.min(K, gains.size()); i++) {
-            if (gains.get(i) > 0) {
-                dp[v][0] += gains.get(i);
-            } else {
-                break; // Remaining gains are non-positive, skip them
+        int m = deltas.size();
+        Long[] del_arr = deltas.toArray(new Long[m]);
+        Arrays.sort(del_arr, (a, b) -> Long.compare(b, a));
+        // muk_local: up to k
+        long muk_local = 0L;
+        {
+            long cum = 0L;
+            for (int i = 0; i < m && i < k; i++) {
+                if (del_arr[i] < 0L) break;
+                cum += del_arr[i];
+            }
+            muk_local = cum;
+        }
+        // mum1_local: up to k-1
+        long mum1_local = 0L;
+        {
+            long cum = 0L;
+            int lim = k - 1;
+            if (lim > 0) {
+                for (int i = 0; i < m && i < lim; i++) {
+                    if (del_arr[i] < 0L) break;
+                    cum += del_arr[i];
+                }
+                mum1_local = cum;
             }
         }
-        
-        // dp[v][1]: can use up to k-1 edges
-        dp[v][1] = baseSum;
-        for (int i = 0; i < Math.min(K - 1, gains.size()); i++) {
-            if (gains.get(i) > 0) {
-                dp[v][1] += gains.get(i);
-            } else {
-                break; // Remaining gains are non-positive, skip them
-            }
-        }
+        long total_k = C + muk_local;
+        long total_km1 = C + mum1_local;
+        return new long[]{total_k, total_km1};
     }
 }
 # @lc code=end
