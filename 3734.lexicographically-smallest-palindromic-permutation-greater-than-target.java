@@ -3,105 +3,116 @@
 #
 # [3734] Lexicographically Smallest Palindromic Permutation Greater Than Target
 #
+
 # @lc code=start
 class Solution {
     public String lexPalindromicPermutation(String s, String target) {
         int n = s.length();
-        
-        // Count character frequencies
-        int[] freq = new int[26];
-        for (char c : s.toCharArray()) {
-            freq[c - 'a']++;
+        int[] total = new int[26];
+        for (char ch : s.toCharArray()) {
+            total[ch - 'a']++;
         }
-        
-        // Check if palindrome is possible (at most one odd frequency)
-        int oddCount = 0;
-        int oddIdx = -1;
-        for (int i = 0; i < 26; i++) {
-            if (freq[i] % 2 == 1) {
-                oddCount++;
-                oddIdx = i;
+        int leftEnd = (n - 1) / 2;
+        for (int k = n - 1; k >= 0; k--) {
+            char[] res = new char[n];
+            boolean validPrefix = true;
+            for (int j = 0; j < k; j++) {
+                char ch = target.charAt(j);
+                int mir = n - 1 - j;
+                if (res[j] != 0 && res[j] != ch) {
+                    validPrefix = false;
+                    break;
+                }
+                res[j] = ch;
+                if (res[mir] != 0 && res[mir] != ch) {
+                    validPrefix = false;
+                    break;
+                }
+                res[mir] = ch;
             }
-        }
-        
-        if (oddCount > 1) return "";
-        
-        // Prepare half frequencies (characters for first half)
-        int[] halfFreq = new int[26];
-        for (int i = 0; i < 26; i++) {
-            halfFreq[i] = freq[i] / 2;
-        }
-        
-        int halfLen = n / 2;
-        char[] firstHalf = new char[halfLen];
-        
-        // Build first half using backtracking
-        if (buildGreater(firstHalf, 0, halfFreq, oddIdx, target, false)) {
-            return constructPalindrome(firstHalf, oddIdx);
-        }
-        
-        return "";
-    }
-    
-    private boolean buildGreater(char[] firstHalf, int pos, int[] halfFreq, int oddIdx, 
-                                  String target, boolean isGreater) {
-        if (pos == firstHalf.length) {
-            // Construct complete palindrome and verify it's strictly greater than target
-            String result = constructPalindrome(firstHalf, oddIdx);
-            return result.compareTo(target) > 0;
-        }
-        
-        if (isGreater) {
-            // Already greater than target, fill with smallest available characters
+            if (!validPrefix) continue;
+            int[] cnt = new int[26];
+            System.arraycopy(total, 0, cnt, 0, 26);
+            boolean feasible = true;
+            for (int i = 0; i < n; i++) {
+                if (res[i] != 0) {
+                    int idx = res[i] - 'a';
+                    cnt[idx]--;
+                    if (cnt[idx] < 0) {
+                        feasible = false;
+                        break;
+                    }
+                }
+            }
+            if (!feasible) continue;
+            int mirK = n - 1 - k;
+            char tgtK = target.charAt(k);
+            char chosenC = 0;
+            boolean mirrorAlreadySet = (mirK < k);
+            int deduct = 1;
+            if (mirK > k) deduct = 2;
+            if (mirrorAlreadySet) {
+                char forced = res[mirK];
+                int idx = forced - 'a';
+                if (forced > tgtK && cnt[idx] >= 1) {
+                    chosenC = forced;
+                }
+            } else {
+                for (char c = (char)(tgtK + 1); c <= 'z'; c++) {
+                    int idx = c - 'a';
+                    if (cnt[idx] >= deduct) {
+                        chosenC = c;
+                        break;
+                    }
+                }
+            }
+            if (chosenC == 0) continue;
+            res[k] = chosenC;
+            if (mirK != k) {
+                res[mirK] = chosenC;
+            }
+            cnt[chosenC - 'a'] -= deduct;
+            boolean canFill = true;
+            for (int i = k + 1; i <= leftEnd; i++) {
+                if (res[i] != 0) continue;
+                int mirI = n - 1 - i;
+                int need = (mirI == i ? 1 : 2);
+                char d = 0;
+                for (char cc = 'a'; cc <= 'z'; cc++) {
+                    int idx = cc - 'a';
+                    if (cnt[idx] >= need) {
+                        d = cc;
+                        break;
+                    }
+                }
+                if (d == 0) {
+                    canFill = false;
+                    break;
+                }
+                res[i] = d;
+                res[mirI] = d;
+                cnt[d - 'a'] -= need;
+            }
+            if (!canFill) continue;
+            feasible = true;
+            for (int i = 0; i < n; i++) {
+                if (res[i] == 0) {
+                    feasible = false;
+                    break;
+                }
+            }
+            if (!feasible) continue;
             for (int i = 0; i < 26; i++) {
-                if (halfFreq[i] > 0) {
-                    firstHalf[pos] = (char)('a' + i);
-                    halfFreq[i]--;
-                    if (buildGreater(firstHalf, pos + 1, halfFreq, oddIdx, target, true)) {
-                        return true;
-                    }
-                    halfFreq[i]++;
+                if (cnt[i] != 0) {
+                    feasible = false;
+                    break;
                 }
             }
-        } else {
-            // Not yet greater, try to make it greater
-            char targetChar = target.charAt(pos);
-            
-            // Try characters from targetChar onwards
-            for (int i = targetChar - 'a'; i < 26; i++) {
-                if (halfFreq[i] > 0) {
-                    char c = (char)('a' + i);
-                    firstHalf[pos] = c;
-                    halfFreq[i]--;
-                    
-                    boolean newIsGreater = (c > targetChar);
-                    if (buildGreater(firstHalf, pos + 1, halfFreq, oddIdx, target, newIsGreater)) {
-                        return true;
-                    }
-                    
-                    halfFreq[i]++;
-                }
+            if (feasible) {
+                return new String(res);
             }
         }
-        
-        return false;
-    }
-    
-    private String constructPalindrome(char[] firstHalf, int oddIdx) {
-        StringBuilder sb = new StringBuilder();
-        // Add first half
-        for (char c : firstHalf) {
-            sb.append(c);
-        }
-        // Add middle character if odd length
-        if (oddIdx != -1) {
-            sb.append((char)('a' + oddIdx));
-        }
-        // Add mirrored second half
-        for (int i = firstHalf.length - 1; i >= 0; i--) {
-            sb.append(firstHalf[i]);
-        }
-        return sb.toString();
+        return "";
     }
 }
 # @lc code=end
