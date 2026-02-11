@@ -3,61 +3,111 @@
 #
 # [3413] Maximum Coins From K Consecutive Bags
 #
-# @lc code=start
-import java.util.*;
 
+# @lc code=start
 class Solution {
     public long maximumCoins(int[][] coins, int k) {
-        // Sort segments by left position
-        Arrays.sort(coins, (a, b) -> Integer.compare(a[0], b[0]));
-        
-        long maxCoins = 0;
-        Set<Long> criticalStarts = new HashSet<>();
-        
-        // Identify critical starting positions for the k-window
-        for (int[] coin : coins) {
-            long left = coin[0];
-            long right = coin[1];
-            
-            // Window starts at segment beginning
-            criticalStarts.add(left);
-            
-            // Window ends at segment end
-            long startToEndAtRight = right - k + 1;
-            if (startToEndAtRight >= 1) {
-                criticalStarts.add(startToEndAtRight);
+        int n = coins.length;
+        long K = k;
+        Integer[] order = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            order[i] = i;
+        }
+        java.util.Arrays.sort(order, (a, b) -> java.lang.Integer.compare(coins[a][0], coins[b][0]));
+        // Sorted by li: posL increasing, posR non-decreasing due to non-overlap
+        long[] posL = new long[n];
+        long[] posR = new long[n];
+        long[] col = new long[n];
+        long[] pre = new long[n + 1];
+        java.util.List<java.lang.Long> candidates = new java.util.ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            int id = order[i];
+            posL[i] = coins[id][0];
+            posR[i] = coins[id][1];
+            col[i] = coins[id][2];
+            long leng = posR[i] - posL[i] + 1L;
+            long valu = col[i] * leng;
+            pre[i + 1] = pre[i] + valu;
+            // Candidates: window start alignments (left at li/ri+1), right alignments (end+1 at li/ri+1)
+            candidates.add(posL[i]);
+            candidates.add(posR[i] + 1L);
+            candidates.add(posL[i] - K);
+            candidates.add(posR[i] + 1L - K);
+        }
+        long ans = 0L;
+        for (java.lang.Long stObj : candidates) {
+            long st = stObj;
+            long en = st + K - 1L;
+            long cu = getSum(st, en, posL, posR, col, pre, n);
+            if (cu > ans) {
+                ans = cu;
             }
         }
-        
-        // Calculate maximum coins for each critical starting position
-        for (long start : criticalStarts) {
-            long coinsCollected = calculateCoinsForWindow(coins, start, k);
-            maxCoins = Math.max(maxCoins, coinsCollected);
-        }
-        
-        return maxCoins;
+        return ans;
     }
-    
-    private long calculateCoinsForWindow(int[][] coins, long start, int k) {
-        long total = 0;
-        long end = start + k - 1;
-        
-        for (int[] coin : coins) {
-            long left = coin[0];
-            long right = coin[1];
-            long coinsPerBag = coin[2];
-            
-            // Calculate overlap between window [start, end] and segment [left, right]
-            long overlapStart = Math.max(start, left);
-            long overlapEnd = Math.min(end, right);
-            
-            if (overlapStart <= overlapEnd) {
-                long overlapLength = overlapEnd - overlapStart + 1;
-                total += overlapLength * coinsPerBag;
+
+    private static long getSum(long left, long right, long[] posL, long[] posR, long[] col, long[] pre, int n) {
+        if (left > right) {
+            return 0L;
+        }
+        // leftIdx: first seg with ri >= left (leftmost potential intersect)
+        int leftIdx = lowerBound(posR, left, n);
+        // rightIdx: last seg with li <= right (rightmost potential intersect)
+        int rightIdx = upperBound(posL, right, n) - 1;
+        if (leftIdx > rightIdx || leftIdx >= n || rightIdx < 0) {
+            return 0L;
+        }
+        long sumv = 0L;
+        // Partial overlap for leftmost intersecting segment
+        long ovl = java.lang.Math.max(posL[leftIdx], left);
+        long ovr = java.lang.Math.min(posR[leftIdx], right);
+        if (ovl <= ovr) {
+            sumv += col[leftIdx] * (ovr - ovl + 1L);
+        }
+        if (rightIdx > leftIdx) {
+            // Partial overlap for rightmost intersecting segment (if distinct)
+            ovl = java.lang.Math.max(posL[rightIdx], left);
+            ovr = java.lang.Math.min(posR[rightIdx], right);
+            if (ovl <= ovr) {
+                sumv += col[rightIdx] * (ovr - ovl + 1L);
+            }
+            // Full sum for interior segments [leftIdx+1, rightIdx-1] using prefix
+            // Valid because interiors fully covered by non-overlap/sorted properties
+            if (rightIdx >= leftIdx + 2) {
+                sumv += pre[rightIdx] - pre[leftIdx + 1];
             }
         }
-        
-        return total;
+        return sumv;
+    }
+
+    // Standard lower_bound: smallest index where arr[mid] >= val
+    private static int lowerBound(long[] arr, long val, int n) {
+        int low = 0;
+        int high = n;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (arr[mid] >= val) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return low;
+    }
+
+    // Standard upper_bound: smallest index where arr[mid] > val
+    private static int upperBound(long[] arr, long val, int n) {
+        int low = 0;
+        int high = n;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (arr[mid] > val) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return low;
     }
 }
 # @lc code=end
