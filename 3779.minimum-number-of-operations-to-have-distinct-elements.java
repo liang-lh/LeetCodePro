@@ -5,22 +5,35 @@
 #
 
 # @lc code=start
-import java.util.*;
-
 class Solution {
     public int minOperations(int[] nums) {
         int n = nums.length;
-        Map<Integer, List<Integer>> posMap = new HashMap<>();
-        for (int i = 0; i < n; i++) {
-            posMap.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);
-        }
-        int maxStart = 0;
-        for (List<Integer> positions : posMap.values()) {
-            if (positions.size() >= 2) {
-                maxStart = Math.max(maxStart, positions.get(positions.size() - 2) + 1);
+        int[] freq = new int[100001];
+        int dupCnt = 0;
+        for (int num : nums) {
+            freq[num]++;
+            if (freq[num] == 2) {
+                dupCnt++;
             }
         }
-        return (maxStart + 2) / 3;
+        int ops = 0;
+        int pos = 0;
+        while (true) {
+            if (pos >= n || dupCnt == 0) {
+                return ops;
+            }
+            int removeCnt = Math.min(3, n - pos);
+            for (int j = 0; j < removeCnt; j++) {
+                int val = nums[pos + j];
+                int before = freq[val];
+                freq[val]--;
+                if (before == 2) {
+                    dupCnt--;
+                }
+            }
+            pos += removeCnt;
+            ops++;
+        }
     }
 }
 # @lc code=end
