@@ -5,13 +5,14 @@
 #
 
 # @lc code=start
+import java.util.*;
 class Solution {
-    static class FenwickTree {
+    static class Fenwick {
         long[] tree;
         int n;
-        FenwickTree(int sz) {
-            n = sz + 2;
-            tree = new long[n + 1];
+        Fenwick(int _n) {
+            n = _n;
+            tree = new long[n + 2];
         }
         void update(int idx, long val) {
             while (idx <= n) {
@@ -29,28 +30,26 @@ class Solution {
         }
     }
 
-    static class Query {
-        int L, R, index;
-        Query(int l, int r, int id) {
-            L = l;
-            R = r;
-            index = id;
+    static class MoQuery {
+        int l, r, idx;
+        MoQuery(int l, int r, int idx) {
+            this.l = l;
+            this.r = r;
+            this.idx = idx;
         }
     }
 
     public long[] minOperations(int[] nums, int k, int[][] queries) {
         int n = nums.length;
-        int q = queries.length;
+        int qnum = queries.length;
         int[] mods = new int[n];
-        int[] quot = new int[n];
+        int[] qvals = new int[n];
         for (int i = 0; i < n; i++) {
             mods[i] = nums[i] % k;
-            quot[i] = nums[i] / k;
+            qvals[i] = nums[i] / k;
         }
-        if (q == 0) return new long[0];
-
-        // Sparse Table for RMQ min/max mods
-        final int LOG = 16;
+        // Sparse Table for min/max mods
+        int LOG = 16;
         int[][] stmin = new int[LOG][n];
         int[][] stmax = new int[LOG][n];
         for (int i = 0; i < n; i++) {
@@ -62,124 +61,118 @@ class Solution {
                 stmax[j][i] = Math.max(stmax[j - 1][i], stmax[j - 1][i + (1 << (j - 1))]);
             }
         }
-        int[] lg = new int[n + 1];
-        for (int i = 2; i <= n; i++) lg[i] = lg[i / 2] + 1;
-
-        // Compress quotients
-        java.util.HashSet<Integer> uset = new java.util.HashSet<>();
-        for (int v : quot) uset.add(v);
-        java.util.ArrayList<Integer> suniq = new java.util.ArrayList<>(uset);
-        java.util.Collections.sort(suniq);
-        int dsize = suniq.size();
-        java.util.HashMap<Integer, Integer> crank = new java.util.HashMap<>();
-        for (int i = 0; i < dsize; i++) {
-            crank.put(suniq.get(i), i + 1);
+        // Identify valid queries
+        List<MoQuery> validQueries = new ArrayList<>();
+        long[] answer = new long[qnum];
+        Arrays.fill(answer, -1L);
+        for (int qi = 0; qi < qnum; qi++) {
+            int L = queries[qi][0];
+            int R = queries[qi][1];
+            int lenq = R - L + 1;
+            int lg = 31 - Integer.numberOfLeadingZeros(lenq);
+            int min_mod = Math.min(stmin[lg][L], stmin[lg][R - (1 << lg) + 1]);
+            int max_mod = Math.max(stmax[lg][L], stmax[lg][R - (1 << lg) + 1]);
+            if (min_mod == max_mod) {
+                validQueries.add(new MoQuery(L, R, qi));
+            }
+        }
+        if (validQueries.isEmpty()) {
+            return answer;
+        }
+        // Discretization
+        Integer[] qarr = new Integer[n];
+        for (int i = 0; i < n; i++) qarr[i] = qvals[i];
+        Arrays.sort(qarr);
+        List<Integer> uniqueVals = new ArrayList<>();
+        if (n > 0) {
+            uniqueVals.add(qarr[0]);
+            for (int i = 1; i < n; i++) {
+                if (!qarr[i].equals(qarr[i - 1])) {
+                    uniqueVals.add(qarr[i]);
+                }
+            }
+        }
+        int numUnique = uniqueVals.size();
+        long[] valOfRank = new long[numUnique + 1];
+        Map<Integer, Integer> rankMap = new HashMap<>();
+        for (int i = 0; i < numUnique; i++) {
+            int v = uniqueVals.get(i);
+            int rnk = i + 1;
+            rankMap.put(v, rnk);
+            valOfRank[rnk] = v;
         }
         int[] ranks = new int[n];
         for (int i = 0; i < n; i++) {
-            ranks[i] = crank.get(quot[i]);
+            ranks[i] = rankMap.get(qvals[i]);
         }
-
-        // Mo's queries
-        int block = 250;
-        java.util.List<Query> qlist = new java.util.ArrayList<>();
-        for (int i = 0; i < q; i++) {
-            qlist.add(new Query(queries[i][0], queries[i][1], i));
-        }
-        qlist.sort((a, b) -> {
-            int ba = a.L / block;
-            int bb = b.L / block;
-            if (ba != bb) return ba - bb;
-            return a.R - b.R;
+        // Mo's setup
+        int blockSz = (int) Math.sqrt(n) + 1;
+        validQueries.sort((a, b) -> {
+            int ba = a.l / blockSz;
+            int bb = b.l / blockSz;
+            if (ba != bb) return Integer.compare(ba, bb);
+            return Integer.compare(a.r, b.r);
         });
-
-        FenwickTree ftcnt = new FenwickTree(dsize);
-        FenwickTree ftsum = new FenwickTree(dsize);
-        long[] ans = new long[q];
-        int curl = 0, curr = -1;
-        long totcnt = 0, totsum = 0;
-
-        for (Query que : qlist) {
-            int tl = que.L, tr = que.R;
-            // Add right
-            while (curr < tr) {
-                curr++;
-                int rk = ranks[curr];
-                long val = quot[curr];
-                ftcnt.update(rk, 1);
-                ftsum.update(rk, val);
-                totcnt++;
-                totsum += val;
+        Fenwick countFT = new Fenwick(numUnique + 1);
+        Fenwick sumFT = new Fenwick(numUnique + 1);
+        int currL = 0;
+        int currR = -1;
+        for (MoQuery mq : validQueries) {
+            int targetL = mq.l;
+            int targetR = mq.r;
+            while (currL > targetL) {
+                currL--;
+                int rk = ranks[currL];
+                long v = qvals[currL];
+                countFT.update(rk, 1);
+                sumFT.update(rk, v);
             }
-            // Add left
-            while (curl > tl) {
-                curl--;
-                int rk = ranks[curl];
-                long val = quot[curl];
-                ftcnt.update(rk, 1);
-                ftsum.update(rk, val);
-                totcnt++;
-                totsum += val;
+            while (currR < targetR) {
+                currR++;
+                int rk = ranks[currR];
+                long v = qvals[currR];
+                countFT.update(rk, 1);
+                sumFT.update(rk, v);
             }
-            // Remove right
-            while (curr > tr) {
-                int rk = ranks[curr];
-                long val = quot[curr];
-                ftcnt.update(rk, -1);
-                ftsum.update(rk, -val);
-                totcnt--;
-                totsum -= val;
-                curr--;
+            while (currL < targetL) {
+                int rk = ranks[currL];
+                long v = qvals[currL];
+                countFT.update(rk, -1);
+                sumFT.update(rk, -v);
+                currL++;
             }
-            // Remove left
-            while (curl < tl) {
-                int rk = ranks[curl];
-                long val = quot[curl];
-                ftcnt.update(rk, -1);
-                ftsum.update(rk, -val);
-                totcnt--;
-                totsum -= val;
-                curl++;
+            while (currR > targetR) {
+                int rk = ranks[currR];
+                long v = qvals[currR];
+                countFT.update(rk, -1);
+                sumFT.update(rk, -v);
+                currR--;
             }
-            // Check mods and compute
-            int sublen = tr - tl + 1;
-            int klog = lg[sublen];
-            int rmin = Math.min(stmin[klog][tl], stmin[klog][tr - (1 << klog) + 1]);
-            int rmax = Math.max(stmax[klog][tl], stmax[klog][tr - (1 << klog) + 1]);
-            if (rmin != rmax) {
-                ans[que.index] = -1;
-                continue;
-            }
-            long clen = totcnt;
-            long target = (clen + 1) / 2;
-            // Binary search medrank
-            int lo = 1, hi = dsize;
-            int medrk = hi + 1;
-            while (lo <= hi) {
-                int mi = (lo + hi) / 2;
-                if (ftcnt.query(mi) >= target) {
-                    medrk = mi;
-                    hi = mi - 1;
+            // Compute ops
+            int length = targetR - targetL + 1;
+            int kth = (length + 1) / 2;
+            int leftb = 1, rightb = numUnique;
+            int medRank = rightb + 1;
+            while (leftb <= rightb) {
+                int midR = leftb + (rightb - leftb) / 2;
+                if (countFT.query(midR) >= kth) {
+                    medRank = midR;
+                    rightb = midR - 1;
                 } else {
-                    lo = mi + 1;
+                    leftb = midR + 1;
                 }
             }
-            if (medrk > dsize) {
-                ans[que.index] = -1;
-                continue;
-            }
-            long medv = suniq.get(medrk - 1);
-            long lcnt = medrk == 1 ? 0 : ftcnt.query(medrk - 1);
-            long lsum = medrk == 1 ? 0 : ftsum.query(medrk - 1);
-            long leqc = ftcnt.query(medrk);
-            long leqs = ftsum.query(medrk);
-            long gcnt = clen - leqc;
-            long gsum = totsum - leqs;
-            long leftcost = medv * lcnt - lsum;
-            long rightcost = gsum - medv * gcnt;
-            ans[que.index] = leftcost + rightcost;
+            long medVal = valOfRank[medRank];
+            long countLeft = countFT.query(medRank - 1);
+            long sumLeft = sumFT.query(medRank - 1);
+            long countLeq = countFT.query(medRank);
+            long sumLeq = sumFT.query(medRank);
+            long countRight = (long) length - countLeq;
+            long sumRight = sumFT.query(numUnique) - sumLeq;
+            long ops = countLeft * medVal - sumLeft + sumRight - countRight * medVal;
+            answer[mq.idx] = ops;
         }
-        return ans;
+        return answer;
     }
 }
 # @lc code=end
