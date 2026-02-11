@@ -1,64 +1,87 @@
-=== INTERNAL THINKING GUIDE - DO NOT OUTPUT THIS TEXT ===
+#
+# @lc app=leetcode id=3575 lang=java
+#
+# [3575] Maximum Good Subtree Score
+#
 
-This guides YOUR reasoning process. It is NOT the answer.
-
-BEFORE you start thinking about solutions:
-→ What is the SPECIFIC problem I need to solve right now?
-→ What type of output is expected? (code? calculation? explanation?)
-→ What format should my answer take?
-→ Am I creating something new or evaluating something existing?
-
-YOUR THINKING PROCESS:
-
-1. Understand the Problem Deeply
-   - Read everything carefully - what are the inputs, outputs, constraints?
-   - What exactly needs to be computed or created?
-   - Study any examples - what patterns emerge?
-   - What edge cases exist?
-   - What is this problem really testing?
-
-2. Design Your Approach
-   - What strategy would work for THIS specific problem?
-   - What techniques or data structures fit?
-   - Can I break this into smaller parts?
-   - What's my high-level plan?
-
-3. Verify Logic BEFORE Implementation
-   CRITICAL: Test your reasoning mentally first
-   - Take the simplest example from the problem
-   - Walk through your approach step-by-step in your mind
-   - Does each step logically produce the next?
-   - Do you arrive at the correct answer?
-   - Where might your logic fail?
-   - Are you handling all requirements?
-
-4. Build the Solution
-   - Implement your verified approach
-   - Address each requirement from the problem
-   - Use appropriate syntax/format for expected output type
-   - Keep constraints in mind
-
-5. Validate Your Work
-   - Pick an example from the problem
-   - Trace through YOUR solution step-by-step
-   - Track values at each stage
-   - Does final output match expected result?
-   - If NO: which exact step went wrong? Fix it
-   - Test with another example if available
-
-6. Check Edge Cases
-   - Boundary conditions (min/max values, empty inputs)
-   - Special cases from constraints
-   - Scenarios where logic might break
-
-FINAL REALITY CHECK before outputting:
-□ Have I solved the SPECIFIC problem given?
-□ Does my output contain the actual solution/deliverable?
-□ Am I about to output instructions instead of a solution?
-□ Does my output match the required format?
-
-If you're outputting guidance or meta-analysis → STOP and actually solve the problem
-
-Remember: Output the SOLUTION to the problem, not a discussion about solving
-
-=== END GUIDE ===
+# @lc code=start
+class Solution {
+    public int goodSubtreeSum(int[] vals, int[] par) {
+        final int MOD = 1000000007;
+        int n = vals.length;
+        int N = 1 << 10;
+        boolean[] canUse = new boolean[n];
+        int[] dMask = new int[n];
+        for (int i = 0; i < n; ++i) {
+            String s = Integer.toString(vals[i]);
+            int[] count = new int[10];
+            for (char c : s.toCharArray()) {
+                ++count[c - '0'];
+            }
+            int mask = 0;
+            boolean valid = true;
+            for (int d = 0; d < 10; ++d) {
+                if (count[d] > 1) {
+                    valid = false;
+                }
+                if (count[d] > 0) {
+                    mask |= (1 << d);
+                }
+            }
+            canUse[i] = valid;
+            dMask[i] = mask;
+        }
+        java.util.List<Integer>[] adj = new java.util.List[n];
+        for (int i = 0; i < n; ++i) {
+            adj[i] = new java.util.ArrayList<Integer>();
+        }
+        for (int i = 1; i < n; ++i) {
+            adj[par[i]].add(i);
+        }
+        final long[] total = {0L};
+        java.util.function.Function<Integer, long[]> dfsFunc = new java.util.function.Function<Integer, long[]>() {
+            @Override
+            public long[] apply(Integer u) {
+                long[] dp = new long[N];
+                java.util.Arrays.fill(dp, Long.MIN_VALUE / 2);
+                dp[0] = 0L;
+                for (int v : adj[u]) {
+                    long[] childDp = apply(v);
+                    long[] newDp = new long[N];
+                    java.util.Arrays.fill(newDp, Long.MIN_VALUE / 2);
+                    for (int m1 = 0; m1 < N; ++m1) {
+                        if (dp[m1] == Long.MIN_VALUE / 2) continue;
+                        for (int m2 = 0; m2 < N; ++m2) {
+                            if (childDp[m2] == Long.MIN_VALUE / 2) continue;
+                            if ((m1 & m2) == 0) {
+                                int newMask = m1 | m2;
+                                newDp[newMask] = Math.max(newDp[newMask], dp[m1] + childDp[m2]);
+                            }
+                        }
+                    }
+                    dp = newDp;
+                }
+                long[] fullDp = java.util.Arrays.copyOf(dp, N);
+                if (canUse[u]) {
+                    int mu = dMask[u];
+                    for (int m = 0; m < N; ++m) {
+                        if (dp[m] == Long.MIN_VALUE / 2) continue;
+                        if ((m & mu) == 0) {
+                            int nm = m | mu;
+                            fullDp[nm] = Math.max(fullDp[nm], dp[m] + (long) vals[u]);
+                        }
+                    }
+                }
+                long maxS = 0L;
+                for (long v : fullDp) {
+                    maxS = Math.max(maxS, v);
+                }
+                total[0] = (total[0] + maxS % MOD + MOD) % MOD;
+                return fullDp;
+            }
+        };
+        dfsFunc.apply(0);
+        return (int) total[0];
+    }
+}
+# @lc code=end
