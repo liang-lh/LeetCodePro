@@ -8,14 +8,57 @@
 import java.util.*;
 
 class Solution {
-    private long[][] dp;
-    private List<Integer>[] adj;
-    private int[] nums_arr;
-    private int KK;
+    private long[][] dfs(int u, int par, List<Integer>[] adj, int[] nums, int k) {
+        List<Integer> children = new ArrayList<>();
+        for (int v : adj[u]) {
+            if (v != par) {
+                children.add(v);
+            }
+        }
+        long[][][] childDps = new long[children.size()][];
+        for (int i = 0; i < children.size(); i++) {
+            childDps[i] = dfs(children.get(i), u, adj, nums, k);
+        }
+        long[][] dp = new long[2][k];
+        for (int pin = 0; pin < 2; pin++) {
+            for (int din = 0; din < k; din++) {
+                // inv=0
+                {
+                    int inv = 0;
+                    int total_parity = (pin + inv) % 2;
+                    long contrib = (long) nums[u] * (total_parity == 0 ? 1L : -1L);
+                    int p_ch = (pin + inv) % 2;
+                    int potential_d = (din == 0 ? k : din + 1);
+                    int d_ch = (potential_d >= k ? 0 : potential_d);
+                    long current = contrib;
+                    for (int j = 0; j < children.size(); j++) {
+                        current += childDps[j][p_ch][d_ch];
+                    }
+                    dp[pin][din] = current;
+                }
+                // inv=1 if din==0
+                if (din == 0) {
+                    int inv = 1;
+                    int total_parity = (pin + inv) % 2;
+                    long contrib = (long) nums[u] * (total_parity == 0 ? 1L : -1L);
+                    int p_ch = (pin + inv) % 2;
+                    int potential_d = 1;
+                    int d_ch = (potential_d >= k ? 0 : potential_d);
+                    long current = contrib;
+                    for (int j = 0; j < children.size(); j++) {
+                        current += childDps[j][p_ch][d_ch];
+                    }
+                    dp[pin][din] = Math.max(dp[pin][din], current);
+                }
+            }
+        }
+        return dp;
+    }
 
     public long subtreeInversionSum(int[][] edges, int[] nums, int k) {
         int n = nums.length;
-        adj = new List[n];
+        @SuppressWarnings("unchecked")
+        List<Integer>[] adj = new List[n];
         for (int i = 0; i < n; i++) {
             adj[i] = new ArrayList<>();
         }
@@ -23,37 +66,8 @@ class Solution {
             adj[e[0]].add(e[1]);
             adj[e[1]].add(e[0]);
         }
-        dp = new long[n][k + 1];
-        nums_arr = nums;
-        KK = k;
-        dfs(0, -1);
-        return dp[0][k];
-    }
-
-    private void dfs(int u, int par) {
-        List<Integer> children = new ArrayList<>();
-        for (int v : adj[u]) {
-            if (v != par) {
-                dfs(v, u);
-                children.add(v);
-            }
-        }
-        long[] childTotal = new long[KK + 1];
-        for (int t = 1; t <= KK; t++) {
-            for (int v : children) {
-                childTotal[t] += dp[v][t];
-            }
-        }
-        for (int s = 1; s <= KK; s++) {
-            int sch = Math.min(s + 1, KK);
-            long opt1 = (long) nums_arr[u] + childTotal[sch];
-            if (s < KK) {
-                dp[u][s] = opt1;
-            } else {
-                long opt2 = - (long) nums_arr[u] - childTotal[1];
-                dp[u][s] = Math.max(opt1, opt2);
-            }
-        }
+        long[][] rootDp = dfs(0, -1, adj, nums, k);
+        return rootDp[0][0];
     }
 }
 # @lc code=end
