@@ -13,21 +13,22 @@ class Solution {
             prefix[i + 1] = prefix[i] + damage[i];
         }
         long ans = 0;
-        for (int k = 0; k < n; k++) {
-            long thresh = prefix[k + 1] + (long) requirement[k] - hp;
-            int left = 0, right = k;
-            int jmin = k + 1;
-            while (left <= right) {
+        for (int i = 0; i < n; i++) {
+            long need = (long) hp - requirement[i];
+            if (need < 0) continue;
+            long thresh = prefix[i + 1] - need;
+            // binary search: smallest j in [0,i] s.t. prefix[j] >= thresh
+            int left = 0, right = i;
+            while (left < right) {
                 int mid = left + (right - left) / 2;
                 if (prefix[mid] >= thresh) {
-                    jmin = mid;
-                    right = mid - 1;
+                    right = mid;
                 } else {
                     left = mid + 1;
                 }
             }
-            if (jmin <= k) {
-                ans += (k - jmin + 1L);
+            if (left <= i && prefix[left] >= thresh) {
+                ans += (long) (i - left + 1);
             }
         }
         return ans;
