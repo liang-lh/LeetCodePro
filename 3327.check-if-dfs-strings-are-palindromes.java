@@ -3,95 +3,98 @@
 #
 # [3327] Check if DFS Strings Are Palindromes
 #
+
 # @lc code=start
 class Solution {
-    private List<List<Integer>> children;
-    private StringBuilder dfsStr;
-    private int[] start, end;
-    private int timer = 0;
-    
     public boolean[] findAnswer(int[] parent, String s) {
-        int n = parent.length;
-        children = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            children.add(new ArrayList<>());
+        int n = s.length();
+        int[] numChildren = new int[n];
+        for (int i = 1; i < n; ++i) {
+            ++numChildren[parent[i]];
         }
-        
-        // Build adjacency list
-        for (int i = 1; i < n; i++) {
-            children.get(parent[i]).add(i);
+        int[][] children = new int[n][];
+        for (int i = 0; i < n; ++i) {
+            children[i] = new int[numChildren[i]];
         }
-        
-        // Sort children to ensure increasing order
-        for (int i = 0; i < n; i++) {
-            Collections.sort(children.get(i));
+        int[] childIndex = new int[n];
+        for (int i = 1; i < n; ++i) {
+            int p = parent[i];
+            children[p][childIndex[p]++] = i;
         }
-        
-        // Build DFS string from root
-        dfsStr = new StringBuilder();
-        start = new int[n];
-        end = new int[n];
-        timer = 0;
-        buildDfsString(0, s);
-        
-        String fullStr = dfsStr.toString();
-        int len = fullStr.length();
-        
-        // Polynomial hashing for efficient palindrome check
-        long MOD = 1000000007L;
-        long BASE = 31L;
-        
-        long[] hashForward = new long[len + 1];
-        long[] hashBackward = new long[len + 1];
-        long[] pow = new long[len + 1];
-        
-        pow[0] = 1;
-        for (int i = 1; i <= len; i++) {
-            pow[i] = (pow[i-1] * BASE) % MOD;
+        for (int i = 0; i < n; ++i) {
+            if (numChildren[i] > 1) {
+                java.util.Arrays.sort(children[i], 0, numChildren[i]);
+            }
         }
-        
-        // Forward hash
-        for (int i = 0; i < len; i++) {
-            hashForward[i + 1] = (hashForward[i] * BASE + (fullStr.charAt(i) - 'a' + 1)) % MOD;
+        long MOD1 = 1000000007L;
+        long MOD2 = 1000000009L;
+        long BASE1 = 131L;
+        long BASE2 = 137L;
+        long[] pow1 = new long[n + 1];
+        long[] pow2 = new long[n + 1];
+        pow1[0] = 1L;
+        pow2[0] = 1L;
+        for (int i = 1; i <= n; ++i) {
+            pow1[i] = pow1[i - 1] * BASE1 % MOD1;
+            pow2[i] = pow2[i - 1] * BASE2 % MOD2;
         }
-        
-        // Backward hash
-        for (int i = len - 1; i >= 0; i--) {
-            hashBackward[len - i] = (hashBackward[len - i - 1] * BASE + (fullStr.charAt(i) - 'a' + 1)) % MOD;
+        int[] sz = new int[n];
+        long[] fwd1 = new long[n];
+        long[] fwd2 = new long[n];
+        long[] rev1 = new long[n];
+        long[] rev2 = new long[n];
+        int[] unprocessedChildren = new int[n];
+        for (int i = 0; i < n; ++i) {
+            unprocessedChildren[i] = children[i].length;
         }
-        
+        java.util.Queue<Integer> q = new java.util.ArrayDeque<Integer>();
+        for (int i = 0; i < n; ++i) {
+            if (unprocessedChildren[i] == 0) {
+                q.offer(i);
+            }
+        }
+        while (!q.isEmpty()) {
+            int node = q.poll();
+            long h1 = 0L;
+            long h2 = 0L;
+            int totalSz = 0;
+            int[] ch = children[node];
+            int m = ch.length;
+            for (int j = 0; j < m; ++j) {
+                int y = ch[j];
+                h1 = (h1 * pow1[sz[y]] % MOD1 + fwd1[y]) % MOD1;
+                h2 = (h2 * pow2[sz[y]] % MOD2 + fwd2[y]) % MOD2;
+                totalSz += sz[y];
+            }
+            long sch = (long)(s.charAt(node) - 'a' + 1);
+            h1 = (h1 * pow1[1] % MOD1 + sch) % MOD1;
+            h2 = (h2 * pow2[1] % MOD2 + sch) % MOD2;
+            fwd1[node] = h1;
+            fwd2[node] = h2;
+            sz[node] = totalSz + 1;
+            // reverse hash
+            long hr1 = sch;
+            long hr2 = sch;
+            for (int j = m - 1; j >= 0; --j) {
+                int y = ch[j];
+                hr1 = (hr1 * pow1[sz[y]] % MOD1 + rev1[y]) % MOD1;
+                hr2 = (hr2 * pow2[sz[y]] % MOD2 + rev2[y]) % MOD2;
+            }
+            rev1[node] = hr1;
+            rev2[node] = hr2;
+            // notify parent
+            if (parent[node] != -1) {
+                unprocessedChildren[parent[node]]--;
+                if (unprocessedChildren[parent[node]] == 0) {
+                    q.offer(parent[node]);
+                }
+            }
+        }
         boolean[] answer = new boolean[n];
-        for (int i = 0; i < n; i++) {
-            int l = start[i];
-            int r = end[i];
-            
-            // Get hash of substring [l, r)
-            long forwardHash = (hashForward[r] - hashForward[l] * pow[r - l] % MOD + MOD) % MOD;
-            
-            // Get hash of reversed substring
-            int revL = len - r;
-            int revR = len - l;
-            long backwardHash = (hashBackward[revR] - hashBackward[revL] * pow[r - l] % MOD + MOD) % MOD;
-            
-            answer[i] = (forwardHash == backwardHash);
+        for (int i = 0; i < n; ++i) {
+            answer[i] = fwd1[i] == rev1[i] && fwd2[i] == rev2[i];
         }
-        
         return answer;
-    }
-    
-    private void buildDfsString(int node, String s) {
-        start[node] = timer;
-        
-        // Visit children in increasing order
-        for (int child : children.get(node)) {
-            buildDfsString(child, s);
-        }
-        
-        // Add current node's character
-        dfsStr.append(s.charAt(node));
-        timer++;
-        
-        end[node] = timer;
     }
 }
 # @lc code=end
