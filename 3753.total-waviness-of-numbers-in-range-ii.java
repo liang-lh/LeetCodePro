@@ -5,83 +5,73 @@
 #
 
 # @lc code=start
-import java.util.Arrays;
-
 class Solution {
-    private static final int MAX_LEN = 18;
-    private static final int P_SIZE = 11;
-    private long[][][][] countMemo = new long[MAX_LEN + 1][2][P_SIZE][P_SIZE];
-    private long[][][][] wavMemo = new long[MAX_LEN + 1][2][P_SIZE][P_SIZE];
-    private char[] digits;
-    private int nLen;
-
     public long totalWaviness(long num1, long num2) {
-        return calculate(num2) - calculate(num1 - 1);
+        return calc(num2) - calc(num1 - 1);
     }
 
-    private long calculate(long n) {
-        if (n < 100) {
-            return 0L;
+    private long calc(long n) {
+        if (n <= 0) return 0L;
+        String str = String.valueOf(n);
+        int L = str.length();
+        int[] digits = new int[L];
+        for (int i = 0; i < L; i++) {
+            digits[i] = str.charAt(i) - '0';
         }
-        String s = String.valueOf(n);
-        int len = s.length();
-        long ans = 0L;
-        for (int d = 3; d < len; ++d) {
-            StringBuilder sb = new StringBuilder(d);
-            for (int i = 0; i < d; ++i) {
-                sb.append('9');
-            }
-            ans += dp(sb.toString());
-        }
-        ans += dp(s);
-        return ans;
-    }
-
-    private long dp(String upper) {
-        digits = upper.toCharArray();
-        nLen = digits.length;
-        // reset memos
-        for (int p = 0; p <= MAX_LEN; ++p) {
-            for (int t = 0; t < 2; ++t) {
-                for (int pp = 0; pp < P_SIZE; ++pp) {
-                    Arrays.fill(countMemo[p][t][pp], -1L);
-                    Arrays.fill(wavMemo[p][t][pp], -1L);
+        long[][][][] cntMemo = new long[L + 1][2][11][11];
+        long[][][][] sumMemo = new long[L + 1][2][11][11];
+        for (int i = 0; i <= L; i++) {
+            for (int j = 0; j < 2; j++) {
+                for (int k = 0; k < 11; k++) {
+                    for (int m = 0; m < 11; m++) {
+                        cntMemo[i][j][k][m] = -1L;
+                        sumMemo[i][j][k][m] = -1L;
+                    }
                 }
             }
         }
-        return dfs(0, 1, -1, -1)[1];
+        long[] res = solve(0, 1, 0, 0, cntMemo, sumMemo, digits, L);
+        return res[1];
     }
 
-    private long[] dfs(int pos, int tight, int prevPD, int prevD) {
-        if (pos == nLen) {
-            return new long[]{1L, 0L};
+    private long[] solve(int idx, int tight, int p2, int p1, long[][][][] cntMemo, long[][][][] sumMemo, int[] digits, int L) {
+        if (idx == L) {
+            return new long[]{p1 != 0 ? 1L : 0L, 0L};
         }
-        int pdIdx = prevPD + 1;
-        int pIdx = prevD + 1;
-        if (countMemo[pos][tight][pdIdx][pIdx] != -1L) {
-            return new long[]{countMemo[pos][tight][pdIdx][pIdx], wavMemo[pos][tight][pdIdx][pIdx]};
+        if (cntMemo[idx][tight][p2][p1] != -1L) {
+            return new long[]{cntMemo[idx][tight][p2][p1], sumMemo[idx][tight][p2][p1]};
         }
-        int up = tight == 1 ? digits[pos] - '0' : 9;
-        int low = pos == 0 ? 1 : 0;
-        long totCount = 0L;
-        long totWav = 0L;
-        for (int cur = low; cur <= up; ++cur) {
-            int newTight = (tight == 1 && cur == up) ? 1 : 0;
-            int newPrevPD = prevD;
-            int newPrevD = cur;
+        long tot_cnt = 0L;
+        long tot_sum = 0L;
+        int up = tight == 1 ? digits[idx] : 9;
+        for (int d = 0; d <= up; d++) {
+            int ntight = (tight == 1 && d == up) ? 1 : 0;
+            int np2, np1;
+            if (p1 == 0 && d == 0) {
+                np2 = 0;
+                np1 = 0;
+            } else {
+                np1 = d + 1;
+                np2 = p1;
+            }
+            long[] res = solve(idx + 1, ntight, np2, np1, cntMemo, sumMemo, digits, L);
+            long this_cnt = res[0];
+            long this_sumw = res[1];
             long contrib = 0L;
-            if (pos >= 2 && prevPD >= 0 && prevD >= 0) {
-                if ((prevD > prevPD && prevD > cur) || (prevD < prevPD && prevD < cur)) {
-                    contrib = 1L;
+            if (p1 != 0 && p2 != 0) {
+                int leftv = p2 - 1;
+                int centerv = p1 - 1;
+                int rightv = d;
+                if ((centerv > leftv && centerv > rightv) || (centerv < leftv && centerv < rightv)) {
+                    contrib = this_cnt;
                 }
             }
-            long[] sub = dfs(pos + 1, newTight, newPrevPD, newPrevD);
-            totCount += sub[0];
-            totWav += contrib * sub[0] + sub[1];
+            tot_cnt += this_cnt;
+            tot_sum += this_sumw + contrib;
         }
-        countMemo[pos][tight][pdIdx][pIdx] = totCount;
-        wavMemo[pos][tight][pdIdx][pIdx] = totWav;
-        return new long[]{totCount, totWav};
+        cntMemo[idx][tight][p2][p1] = tot_cnt;
+        sumMemo[idx][tight][p2][p1] = tot_sum;
+        return new long[]{tot_cnt, tot_sum};
     }
 }
 # @lc code=end
