@@ -3,73 +3,83 @@
 #
 # [3743] Maximize Cyclic Partition Score
 #
+
 # @lc code=start
 class Solution {
-  public long maximumScore(int[] nums, int k) {
-    int n = nums.length;
-    int N = 2 * n;
-    int[] a = new int[N];
-    for (int i = 0; i < n; ++i) {
-      a[i] = a[i + n] = nums[i];
+    private static final int LOG = 11;
+
+    @FunctionalInterface
+    interface GetRangeFunc {
+        long get(int l, int r);
     }
-    long[][] rng = new long[N][N];
-    for (int i = 0; i < N; ++i) {
-      long mx = a[i];
-      long mn = a[i];
-      rng[i][i] = 0;
-      for (int j = i + 1; j < N; ++j) {
-        mx = Math.max(mx, a[j]);
-        mn = Math.min(mn, a[j]);
-        rng[i][j] = mx - mn;
-      }
+
+    private long getRange(int l, int r, long[][] stMax, long[][] stMin, int[] logg) {
+        if (l >= r) return 0;
+        int len = r - l;
+        int lv = logg[len];
+        int pw = 1 << lv;
+        long mx = Math.max(stMax[lv][l], stMax[lv][r - pw]);
+        long mn = Math.min(stMin[lv][l], stMin[lv][r - pw]);
+        return mx - mn;
     }
-    long ans = 0;
-    long INF = Long.MIN_VALUE / 2;
-    for (int s = 0; s < n; ++s) {
-      long[] dps = new long[n + 1];
-      long[] dpt = new long[n + 1];
-      long[] prev = dps;
-      Arrays.fill(prev, INF);
-      prev[0] = 0;
-      for (int len = 1; len <= n; ++len) {
-        prev[len] = rng[s][s + len - 1];
-      }
-      long localMax = prev[n];
-      long[] target;
-      int maxParts = Math.min(k, n);
-      for (int parts = 2; parts <= maxParts; ++parts) {
-        target = (prev == dps ? dpt : dps);
-        Arrays.fill(target, INF);
-        knuth(parts, n, parts - 1, n, prev, target, s, rng, n);
-        prev = target;
-        if (prev[n] > localMax) {
-          localMax = prev[n];
+
+    private void dcOpt(int L, int R, int optL, int optR, long[] prev, long[] curr, int s, GetRangeFunc gr) {
+        if (L > R) return;
+        int m = (L + R) / 2;
+        long bestVal = Long.MIN_VALUE / 2;
+        int bestK = -1;
+        int startK = Math.max(optL, L - 1);
+        int endK = Math.min(m - 1, optR);
+        for (int kk = startK; kk <= endK; kk++) {
+            long v = prev[kk] + gr.get(s + kk, s + m);
+            if (v > bestVal) {
+                bestVal = v;
+                bestK = kk;
+            }
         }
-      }
-      if (localMax > ans) {
-        ans = localMax;
-      }
+        curr[m] = bestVal;
+        dcOpt(L, m - 1, optL, bestK, prev, curr, s, gr);
+        dcOpt(m + 1, R, bestK, optR, prev, curr, s, gr);
     }
-    return ans;
-  }
-  private void knuth(int L, int R, int optleft, int optright, long[] prev, long[] curr, int s, long[][] rng, int nn) {
-    if (L > R) return;
-    int mid = (L + R) / 2;
-    long best = Long.MIN_VALUE / 2;
-    int bestk = optleft;
-    int upper = Math.min(mid - 1, optright);
-    for (int k = optleft; k <= upper; ++k) {
-      if (prev[k] == Long.MIN_VALUE / 2) continue;
-      long cost = rng[s + k][s + mid - 1];
-      long val = prev[k] + cost;
-      if (val > best) {
-        best = val;
-        bestk = k;
-      }
+
+    public long maximumScore(int[] nums, int k) {
+        int n = nums.length;
+        int N = 2 * n;
+        long[] A = new long[N];
+        for (int i = 0; i < n; i++) {
+            A[i] = nums[i];
+            A[n + i] = nums[i];
+        }
+        long[][] stMax = new long[LOG][N];
+        long[][] stMin = new long[LOG][N];
+        for (int i = 0; i < N; i++) {
+            stMax[0][i] = stMin[0][i] = A[i];
+        }
+        for (int lv = 1; lv < LOG; lv++) {
+            for (int i = 0; i + (1 << lv) <= N; i++) {
+                stMax[lv][i] = Math.max(stMax[lv - 1][i], stMax[lv - 1][i + (1 << (lv - 1))]);
+                stMin[lv][i] = Math.min(stMin[lv - 1][i], stMin[lv - 1][i + (1 << (lv - 1))]);
+            }
+        }
+        int[] logg = new int[N + 1];
+        logg[1] = 0;
+        for (int i = 2; i <= N; i++) {
+            logg[i] = logg[i / 2] + 1;
+        }
+        long ans = 0;
+        for (int s = 0; s < n; s++) {
+            long[][] dp = new long[k + 1][n + 1];
+            for (int len = 1; len <= n; len++) {
+                dp[1][len] = getRange(s, s + len, stMax, stMin, logg);
+            }
+            ans = Math.max(ans, dp[1][n]);
+            for (int p = 2; p <= k; p++) {
+                GetRangeFunc gr = (ll, rr) -> getRange(ll, rr, stMax, stMin, logg);
+                dcOpt(p, n, p - 1, n - 1, dp[p - 1], dp[p], s, gr);
+                ans = Math.max(ans, dp[p][n]);
+            }
+        }
+        return ans;
     }
-    curr[mid] = best;
-    knuth(L, mid - 1, optleft, bestk, prev, curr, s, rng, nn);
-    knuth(mid + 1, R, bestk, optright, prev, curr, s, rng, nn);
-  }
 }
 # @lc code=end
