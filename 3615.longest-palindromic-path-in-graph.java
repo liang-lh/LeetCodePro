@@ -7,57 +7,52 @@
 # @lc code=start
 class Solution {
     public int maxLen(int n, int[][] edges, String label) {
-        boolean[][] graph = new boolean[n][n];
+        final java.util.List<java.lang.Integer>[] adj = new java.util.ArrayList[n];
+        for (int i = 0; i < n; i++) {
+            adj[i] = new java.util.ArrayList<java.lang.Integer>();
+        }
         for (int[] e : edges) {
-            graph[e[0]][e[1]] = true;
-            graph[e[1]][e[0]] = true;
+            adj[e[0]].add(e[1]);
+            adj[e[1]].add(e[0]);
         }
-        final char[] chs = label.toCharArray();
-        final int max_mask = 1 << n;
-        int[] pop = new int[max_mask];
-        for (int i = 0; i < max_mask; i++) {
-            pop[i] = Integer.bitCount(i);
+        final int N = 1 << n;
+        final int[][][] memo = new int[n][n][N];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                java.util.Arrays.fill(memo[i][j], -1);
+            }
         }
-        final int[] popc = pop;
-        final boolean[][] fgraph = graph;
-        final char[] fchs = chs;
-        final int NODES = n;
-        final int[] mem_temp = new int[16384 * 14 * 14];
-        final int[] mem = mem_temp;
-
         class Helper {
-            int dfs(int mask, int l, int r) {
-                int idx = (mask * 14 + l) * 14 + r;
-                if (mem[idx] > 0) {
-                    return mem[idx];
+            int call(int l, int r, int mask) {
+                if (memo[l][r][mask] != -1) {
+                    return memo[l][r][mask];
                 }
-                int res = popc[mask];
-                for (int nl = 0; nl < NODES; nl++) {
-                    if (!fgraph[l][nl] || (mask & (1 << nl)) != 0) continue;
-                    char cl = fchs[nl];
-                    for (int nr = 0; nr < NODES; nr++) {
-                        if (!fgraph[r][nr] || (mask & (1 << nr)) != 0 || nl == nr || fchs[nr] != cl) continue;
-                        int nmask = mask | (1 << nl) | (1 << nr);
-                        res = Math.max(res, dfs(nmask, nl, nr));
+                int ans = Integer.bitCount(mask);
+                for (int nl : adj[l]) {
+                    if ((mask & (1 << nl)) != 0) continue;
+                    for (int nr : adj[r]) {
+                        if ((mask & (1 << nr)) != 0) continue;
+                        if (nl == nr) continue;
+                        if (label.charAt(nl) != label.charAt(nr)) continue;
+                        int newmask = mask | (1 << nl) | (1 << nr);
+                        ans = Math.max(ans, call(nl, nr, newmask));
                     }
                 }
-                mem[idx] = res;
-                return res;
+                memo[l][r][mask] = ans;
+                return ans;
             }
         }
         Helper helper = new Helper();
-        int ans = 1;
-        // odd centers
-        for (int c = 0; c < n; c++) {
-            ans = Math.max(ans, helper.dfs(1 << c, c, c));
-        }
-        // even centers
+        int ans = 0;
         for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                if (fgraph[i][j] && fchs[i] == fchs[j]) {
-                    int msk = (1 << i) | (1 << j);
-                    ans = Math.max(ans, helper.dfs(msk, i, j));
-                }
+            ans = Math.max(ans, helper.call(i, i, 1 << i));
+        }
+        for (int[] e : edges) {
+            int u = e[0], v = e[1];
+            if (label.charAt(u) == label.charAt(v)) {
+                int m = (1 << u) | (1 << v);
+                ans = Math.max(ans, helper.call(u, v, m));
+                ans = Math.max(ans, helper.call(v, u, m));
             }
         }
         return ans;
