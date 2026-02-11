@@ -12,48 +12,46 @@ class Solution {
         if (n <= 1) {
             return ans;
         }
-        int[] adj = new int[n - 1];
-        for (int j = 0; j < n - 1; j++) {
-            String s1 = words[j];
-            String s2 = words[j + 1];
-            int l = 0;
-            int m = Math.min(s1.length(), s2.length());
-            while (l < m && s1.charAt(l) == s2.charAt(l)) {
-                l++;
-            }
-            adj[j] = l;
+        int m = n - 1;
+        int[] prefix = new int[m];
+        for (int j = 0; j < m; j++) {
+            prefix[j] = getLCP(words[j], words[j + 1]);
         }
-        int[] pre = new int[n];
-        pre[0] = 0;
-        for (int j = 1; j < n; j++) {
-            pre[j] = Math.max(pre[j - 1], adj[j - 1]);
+        int[] premax = new int[m];
+        premax[0] = prefix[0];
+        for (int j = 1; j < m; j++) {
+            premax[j] = Math.max(premax[j - 1], prefix[j]);
         }
-        int[] suf = new int[n];
-        suf[n - 1] = 0;
-        for (int j = n - 2; j >= 0; j--) {
-            suf[j] = Math.max(suf[j + 1], adj[j]);
+        int[] sufmax = new int[m];
+        sufmax[m - 1] = prefix[m - 1];
+        for (int j = m - 2; j >= 0; j--) {
+            sufmax[j] = Math.max(sufmax[j + 1], prefix[j]);
         }
         for (int i = 0; i < n; i++) {
-            int mx = 0;
-            if (i == 0) {
-                mx = suf[1];
-            } else if (i == n - 1) {
-                mx = pre[n - 2];
-            } else {
-                int left = pre[i - 1];
-                int right = suf[i + 1];
-                String s1 = words[i - 1];
-                String s2 = words[i + 1];
-                int bridge = 0;
-                int m = Math.min(s1.length(), s2.length());
-                while (bridge < m && s1.charAt(bridge) == s2.charAt(bridge)) {
-                    bridge++;
-                }
-                mx = Math.max(left, Math.max(right, bridge));
+            int max_kept = 0;
+            if (i >= 2) {
+                max_kept = Math.max(max_kept, premax[i - 2]);
             }
-            ans[i] = mx;
+            if (i <= n - 3) {
+                max_kept = Math.max(max_kept, sufmax[i + 1]);
+            }
+            int new_lcp = 0;
+            if (i >= 1 && i <= n - 2) {
+                new_lcp = getLCP(words[i - 1], words[i + 1]);
+            }
+            ans[i] = Math.max(max_kept, new_lcp);
         }
         return ans;
+    }
+    
+    private int getLCP(String a, String b) {
+        int len = Math.min(a.length(), b.length());
+        for (int k = 0; k < len; k++) {
+            if (a.charAt(k) != b.charAt(k)) {
+                return k;
+            }
+        }
+        return len;
     }
 }
 # @lc code=end
