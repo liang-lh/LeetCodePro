@@ -6,33 +6,32 @@
 
 # @lc code=start
 class Solution {
-    public int countBinaryPalindromes(long n) {
-        if (n == 0) return 1;
-        int bitlen = 64 - Long.numberOfLeadingZeros(n);
-        long cnt = 1L; // 0
-        for (int len = 1; len < bitlen; len++) {
-            int llen = (len + 1) / 2;
-            cnt += 1L << (llen - 1);
-        }
-        // length = bitlen
-        int len = bitlen;
-        int half = len / 2;
-        int llen = (len + 1) / 2;
-        long istart = 1L << (llen - 1);
-        long iend = 1L << llen;
-        for (long i = istart; i < iend; i++) {
-            long prefix = i >> (len % 2);
-            long rev = 0;
-            long temp = prefix;
-            for (int j = 0; j < half; j++) {
-                rev = (rev << 1) | (temp & 1);
-                temp >>= 1;
-            }
-            long num = (i << half) | rev;
-            if (num > n) break;
-            cnt++;
-        }
-        return (int) cnt;
+  public int countBinaryPalindromes(long n) {
+    if (n == 0) return 1;
+    String bin = Long.toBinaryString(n);
+    int L = bin.length();
+    long ans = 1;
+    for (int len = 1; len < L; len++) {
+      ans += 1L << ((len - 1) / 2);
     }
+    int half = (L + 1) / 2;
+    String prefix = bin.substring(0, half);
+    long smaller = 0;
+    for (int i = 0; i < half; i++) {
+      if (prefix.charAt(i) == '1') {
+        smaller += 1L << (half - i - 1);
+      }
+    }
+    smaller -= 1L << (half - 1);
+    long palin = 0;
+    for (int i = 0; i < half; i++) {
+      if (prefix.charAt(i) == '1') {
+        palin |= (1L << i) | (1L << (L - 1 - i));
+      }
+    }
+    long eq = (palin <= n) ? 1L : 0L;
+    ans += smaller + eq;
+    return (int) ans;
+  }
 }
 # @lc code=end
