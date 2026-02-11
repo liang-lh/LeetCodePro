@@ -8,21 +8,32 @@
 class Solution {
     public boolean completePrime(int num) {
         String s = String.valueOf(num);
-        int n = s.length();
-        for (int k = 1; k <= n; ++k) {
-            int prefix = Integer.parseInt(s.substring(0, k));
-            if (!isPrime(prefix)) return false;
-            int suffix = Integer.parseInt(s.substring(n - k));
-            if (!isPrime(suffix)) return false;
+        int len = s.length();
+        for (int k = 1; k <= len; k++) {
+            if (!isPrime(Long.parseLong(s.substring(0, k)))) {
+                return false;
+            }
+            if (!isPrime(Long.parseLong(s.substring(len - k)))) {
+                return false;
+            }
         }
         return true;
     }
-    private boolean isPrime(int x) {
-        if (x <= 1) return false;
-        if (x == 2 || x == 3) return true;
-        if (x % 2 == 0 || x % 3 == 0) return false;
-        for (int i = 5; i * i <= x; i += 6) {
-            if (x % i == 0 || x % (i + 2) == 0) return false;
+
+    private static boolean isPrime(long n) {
+        if (n <= 1) {
+            return false;
+        }
+        if (n <= 3) {
+            return true;
+        }
+        if (n % 2 == 0 || n % 3 == 0) {
+            return false;
+        }
+        for (long i = 5; i * i <= n; i += 6) {
+            if (n % i == 0 || n % (i + 2) == 0) {
+                return false;
+            }
         }
         return true;
     }
