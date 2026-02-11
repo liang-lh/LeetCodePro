@@ -7,34 +7,33 @@
 class Solution {
     public long countNonDecreasingSubarrays(int[] nums, int k) {
         int n = nums.length;
-        long count = 0;
-        
-        // Try all possible subarrays
-        for (int i = 0; i < n; i++) {
-            long operations = 0;
-            int maxSoFar = nums[i];
-            
-            for (int j = i; j < n; j++) {
-                // To make subarray non-decreasing, each element must be >= max so far
-                // Cost to increase nums[j] to maxSoFar
-                if (nums[j] < maxSoFar) {
-                    operations += maxSoFar - nums[j];
-                } else {
-                    // Update max if current element is larger
-                    maxSoFar = nums[j];
-                }
-                
-                // Check if we can make this subarray non-decreasing with k operations
-                if (operations <= k) {
-                    count++;
-                } else {
-                    // No point continuing - cost only increases with longer subarrays
-                    break;
+        if (n == 0) return 0;
+        long ans = 0;
+        long cost = 0;
+        long cur_max = nums[0];
+        int rm_pos = 0;
+        int r = 1;
+        for (int l = 0; l < n; ++l) {
+            while (r < n) {
+                long contrib = Math.max(cur_max, (long) nums[r]) - nums[r];
+                if (cost + contrib > k) break;
+                cost += contrib;
+                cur_max = Math.max(cur_max, (long) nums[r]);
+                if ((long) nums[r] == cur_max) rm_pos = r;
+                ++r;
+            }
+            ans += (long) (r - l);
+            if (l + 1 < n) {
+                long contrib_removed = Math.max(0L, (long) nums[l] - nums[l + 1]);
+                cost -= contrib_removed;
+                if (cost < 0) cost = 0;
+                if ((long) nums[l] == cur_max && rm_pos == l) {
+                    cur_max = nums[l + 1];
+                    rm_pos = l + 1;
                 }
             }
         }
-        
-        return count;
+        return ans;
     }
 }
 # @lc code=end
