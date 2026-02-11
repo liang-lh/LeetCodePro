@@ -1,3 +1,131 @@
-{
- "reasoning": "Step 1: Problem Analysis\n- Special path = downward path (ancestor to descendant) where all values are distinct EXCEPT at most one value may appear exactly twice\n- Need to return [max_length, min_nodes] where min_nodes is minimum across ALL paths with max_length\n- Key insight: This is a tree traversal problem with constraint tracking\n\nStep 2: Algorithm Design with Explicit Assumptions\n- Assumption A1: Will use DFS from each node going only to children (downward)\n- Assumption A2: Track value frequencies in current path; path is valid if at most 1 value has frequency 2, all others have frequency 1\n- Assumption A3: Path length accumulates edge weights; node count increments by 1 per node\n- Assumption A4: Update results when current valid path length >= max seen\n\nStep 3: Verify Against Example 1 BEFORE Implementation\n- Example 1: edges form tree, nums = [1,1,0,3,1,2,1,1,0]\n- Expected: [9,3] from paths like 1->2->4\n- Trace path 1->2->4: values [1,1,0], frequencies {1:2, 0:1}, one duplicate ✓\n- Length: edge(1,2)=3 + edge(2,4)=6 = 9 ✓\n- Nodes: 3 ✓\n- Algorithm would: start DFS from node 1, add node 2 (freq {1:2}, valid), add node 4 (freq {1:2,0:1}, valid), update max=9, nodes=3 ✓\n\nStep 4: Boundary Condition Analysis\n- Minimum valid path: Single node (length=0, nodes=1) - should this count? YES, it's a valid special path\n- When to update results: After adding each node if path is still valid (not just at leaves)\n- Initial state: Start with empty frequency map, length=0, nodes=0\n\nStep 5: Component Verification\n- Tree building: Root at 0, create parent->children map, verify bidirectional edges become unidirectional ✓\n- Frequency tracking: Use HashMap, increment on add, decrement on backtrack ✓\n- Duplicate counting: Track how many values have frequency=2, path invalid if >1 ✓\n- Result updates: If length > max, update both; if length == max, update min_nodes ✓\n\nStep 6: State Transitions\n- State: (node, freq_map, length, node_count, duplicate_count)\n- On entering node N with value V:\n  1. freq[V]++\n  2. If freq[V] becomes 2: duplicate_count++\n  3. If duplicate_count > 1 OR freq[V] > 2: INVALID, backtrack\n  4. Else: node_count++, check/update results\n- On exploring child C with edge length L:\n  1. Recurse with (C, freq_map, length+L, node_count, duplicate_count)\n- On backtracking from N:\n  1. freq[V]-- (restore state)\n\nStep 7: Implementation\n- Build tree structure rooted at 0\n- For each node as starting point, run DFS downward\n- Track state correctly with backtracking\n- Update global max_length and min_nodes\n\nNote: Starting DFS from each node ensures we find all ancestor->descendant paths.",
- "result": "#\n# @lc app=leetcode id=3486 lang=java\n#\n# [3486] Longest Special Path II\n#\n# @lc code=start\nimport java.util.*;\n\nclass Solution {\n    private int maxLength = 0;\n    private int minNodes = Integer.MAX_VALUE;\n    private Map<Integer, List<int[]>> graph;\n    private int[] nums;\n    \n    public int[] longestSpecialPath(int[][] edges, int[] nums) {\n        this.nums = nums;\n        int n = nums.length;\n        \n        // Build adjacency list\n        graph = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            graph.put(i, new ArrayList<>());\n        }\n        \n        for (int[] edge : edges) {\n            graph.get(edge[0]).add(new int[]{edge[1], edge[2]});\n            graph.get(edge[1]).add(new int[]{edge[0], edge[2]});\n        }\n        \n        // Root the tree at 0 and build parent-child relationships\n        boolean[] visited = new boolean[n];\n        Map<Integer, List<int[]>> children = new HashMap<>();\n        for (int i = 0; i < n; i++) {\n            children.put(i, new ArrayList<>());\n        }\n        buildTree(0, -1, visited, children);\n        \n        // Try starting from each node and going downward\n        for (int i = 0; i < n; i++) {\n            Map<Integer, Integer> freq = new HashMap<>();\n            dfs(i, children, freq, 0, 0, 0);\n        }\n        \n        return new int[]{maxLength, minNodes};\n    }\n    \n    private void buildTree(int node, int parent, boolean[] visited, \n                          Map<Integer, List<int[]>> children) {\n        visited[node] = true;\n        for (int[] neighbor : graph.get(node)) {\n            int child = neighbor[0];\n            int len = neighbor[1];\n            if (!visited[child]) {\n                children.get(node).add(new int[]{child, len});\n                buildTree(child, node, visited, children);\n            }\n        }\n    }\n    \n    private void dfs(int node, Map<Integer, List<int[]>> children, \n                     Map<Integer, Integer> freq, int length, int nodeCount, int duplicates) {\n        int val = nums[node];\n        freq.put(val, freq.getOrDefault(val, 0) + 1);\n        \n        int newDuplicates = duplicates;\n        if (freq.get(val) == 2) {\n            newDuplicates++;\n        }\n        \n        // Invalid path if more than 1 value appears twice, or any value appears more than twice\n        if (newDuplicates > 1 || freq.get(val) > 2) {\n            freq.put(val, freq.get(val) - 1);\n            return;\n        }\n        \n        nodeCount++;\n        \n        // Update result - every valid node visited forms a valid path\n        if (length > maxLength) {\n            maxLength = length;\n            minNodes = nodeCount;\n        } else if (length == maxLength) {\n            minNodes = Math.min(minNodes, nodeCount);\n        }\n        \n        // Explore children (downward paths only)\n        for (int[] child : children.get(node)) {\n            int childNode = child[0];\n            int edgeLen = child[1];\n            dfs(childNode, children, freq, length + edgeLen, nodeCount, newDuplicates);\n        }\n        \n        // Backtrack\n        freq.put(val, freq.get(val) - 1);\n    }\n}\n# @lc code=end"\n}
+#
+# @lc app=leetcode id=3486 lang=java
+#
+# [3486] Longest Special Path II
+#
+
+# @lc code=start
+import java.util.*;
+class Solution {
+    private int[] nums;
+    private List<List<int[]>> children;
+    private int[] res;
+
+    public int[] longestSpecialPath(int[][] edges, int[] nums) {
+        int n = nums.length;
+        List<List<int[]>> adj = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>()) ;
+        for (int[] e : edges) {
+            int u = e[0], v = e[1], w = e[2];
+            adj.get(u).add(new int[]{v, w});
+            adj.get(v).add(new int[]{u, w});
+        }
+        children = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) children.add(new ArrayList<>());
+        boolean[] vis = new boolean[n];
+        Queue<Integer> q = new LinkedList<>();
+        q.offer(0);
+        vis[0] = true;
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            for (int[] pr : adj.get(u)) {
+                int v = pr[0];
+                if (!vis[v]) {
+                    vis[v] = true;
+                    children.get(u).add(pr);
+                    q.offer(v);
+                }
+            }
+        }
+        this.nums = nums;
+        res = new int[]{0, Integer.MAX_VALUE / 2};
+        dfs(0, -1, -1, -1);
+        if (res[1] == Integer.MAX_VALUE / 2) res[1] = 1;
+        return res;
+    }
+
+    private static class State {
+        int len = -1;
+        int nodes = Integer.MAX_VALUE / 2;
+        boolean valid() { return len != -1; }
+        void update(int l, int nd) {
+            if (l > len) {
+                len = l;
+                nodes = nd;
+            } else if (l == len) {
+                nodes = Math.min(nodes, nd);
+            }
+        }
+    }
+
+    private void updateGlobal(int l, int nd) {
+        if (l > res[0]) {
+            res[0] = l;
+            res[1] = nd;
+        } else if (l == res[0]) {
+            res[1] = Math.min(res[1], nd);
+        }
+    }
+
+    private State[][] dfs(int u, int p, int local_par, int tracked) {
+        State[][] st = new State[5][3];
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 3; j++) {
+                st[i][j] = new State();
+            }
+        }
+        int vu = nums[u];
+        int cnt0_local = (local_par != -1 && vu == local_par) ? 1 : 0;
+        int cnt0_tracked = (tracked != -1 && vu == tracked) ? 1 : 0;
+        int local_k = cnt0_local;
+        st[local_k][cnt0_tracked].update(0, 1);
+        updateGlobal(0, 1);
+        for (int[] pr : children.get(u)) {
+            int v = pr[0];
+            int w = pr[1];
+            State[][] ch = dfs(v, u, vu, local_par);
+            for (int lk = 0; lk < 5; lk++) {
+                for (int tk = 0; tk < 3; tk++) {
+                    if (!ch[lk][tk].valid()) continue;
+                    if (!isCompatible(lk)) continue;
+                    int newl = ch[lk][tk].len + w;
+                    int newn = ch[lk][tk].nodes + 1;
+                    updateGlobal(newl, newn);
+                    int cnt_par_child = tk;
+                    int new_cnt_par = cnt0_local + cnt_par_child;
+                    if (new_cnt_par > 2) continue;
+                    int cnt_ch_local = getCntLocal(lk);
+                    boolean intro = (cnt_ch_local == 1);
+                    boolean ch_dupe = (lk == 3);
+                    boolean has_dupe = intro || ch_dupe;
+                    int newk;
+                    if (!has_dupe) {
+                        newk = new_cnt_par;
+                    } else {
+                        if (intro) {
+                            newk = (vu == local_par ? 2 : 3);
+                        } else {
+                            newk = 3;
+                        }
+                        if (new_cnt_par == 1) newk = 4;
+                    }
+                    int new_cnt_tracked = cnt0_tracked + tk;
+                    if (new_cnt_tracked > 2) continue;
+                    st[newk][new_cnt_tracked].update(newl, newn);
+                }
+            }
+        }
+        return st;
+    }
+
+    private boolean isCompatible(int lk) {
+        return lk == 0 || lk == 1 || lk == 3;
+    }
+
+    private int getCntLocal(int lk) {
+        if (lk == 2) return 2;
+        if (lk == 0 || lk == 3) return 0;
+        return 1;
+    }
+}
+# @lc code=end
