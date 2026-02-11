@@ -3,106 +3,90 @@
 #
 # [1206] Design Skiplist
 #
-# @lc code=start
-import java.util.Random;
 
+# @lc code=start
 class Skiplist {
+
     private static final int MAX_LEVEL = 16;
-    private static final double P = 0.5;
-    
-    class Node {
+
+    private Node head;
+    private int maxLevel;
+
+    private static class Node {
         int val;
         Node[] forward;
-        
         Node(int val, int level) {
             this.val = val;
-            this.forward = new Node[level + 1];
+            forward = new Node[level];
         }
     }
-    
-    private Node head;
-    private int level;
-    private Random random;
-    
+
+    private int randomLevel() {
+        int level = 1;
+        while (Math.random() < 0.25 && level < MAX_LEVEL) {
+            ++level;
+        }
+        return level;
+    }
+
     public Skiplist() {
         head = new Node(-1, MAX_LEVEL);
-        level = 0;
-        random = new Random();
+        maxLevel = 1;
     }
-    
+
     public boolean search(int target) {
-        Node curr = head;
-        for (int i = level; i >= 0; i--) {
-            while (curr.forward[i] != null && curr.forward[i].val < target) {
-                curr = curr.forward[i];
+        Node cur = head;
+        for (int i = maxLevel - 1; i >= 0; --i) {
+            while (cur.forward[i] != null && cur.forward[i].val < target) {
+                cur = cur.forward[i];
             }
         }
-        curr = curr.forward[0];
-        return curr != null && curr.val == target;
+        cur = cur.forward[0];
+        return cur != null && cur.val == target;
     }
-    
+
     public void add(int num) {
-        Node[] update = new Node[MAX_LEVEL + 1];
-        Node curr = head;
-        
-        for (int i = level; i >= 0; i--) {
-            while (curr.forward[i] != null && curr.forward[i].val < num) {
-                curr = curr.forward[i];
+        Node[] update = new Node[MAX_LEVEL];
+        Node cur = head;
+        for (int i = maxLevel - 1; i >= 0; --i) {
+            while (cur.forward[i] != null && cur.forward[i].val < num) {
+                cur = cur.forward[i];
             }
-            update[i] = curr;
+            update[i] = cur;
         }
-        
-        int newLevel = randomLevel();
-        if (newLevel > level) {
-            for (int i = level + 1; i <= newLevel; i++) {
+        int level = randomLevel();
+        if (level > maxLevel) {
+            for (int i = maxLevel; i < level; ++i) {
                 update[i] = head;
             }
-            level = newLevel;
+            maxLevel = level;
         }
-        
-        Node newNode = new Node(num, newLevel);
-        for (int i = 0; i <= newLevel; i++) {
+        Node newNode = new Node(num, level);
+        for (int i = 0; i < level; ++i) {
             newNode.forward[i] = update[i].forward[i];
             update[i].forward[i] = newNode;
         }
     }
-    
+
     public boolean erase(int num) {
-        Node[] update = new Node[MAX_LEVEL + 1];
-        Node curr = head;
-        
-        for (int i = level; i >= 0; i--) {
-            while (curr.forward[i] != null && curr.forward[i].val < num) {
-                curr = curr.forward[i];
+        Node[] update = new Node[MAX_LEVEL];
+        Node cur = head;
+        for (int i = maxLevel - 1; i >= 0; --i) {
+            while (cur.forward[i] != null && cur.forward[i].val < num) {
+                cur = cur.forward[i];
             }
-            update[i] = curr;
+            update[i] = cur;
         }
-        
-        curr = curr.forward[0];
-        if (curr == null || curr.val != num) {
+        Node cand = update[0].forward[0];
+        if (cand == null || cand.val != num) {
             return false;
         }
-        
-        for (int i = 0; i <= level; i++) {
-            if (update[i].forward[i] != curr) {
-                break;
+        for (int i = 0; i < maxLevel; ++i) {
+            if (update[i].forward[i] == cand) {
+                update[i].forward[i] = cand.forward[i];
             }
-            update[i].forward[i] = curr.forward[i];
         }
-        
-        while (level > 0 && head.forward[level] == null) {
-            level--;
-        }
-        
         return true;
-    }
-    
-    private int randomLevel() {
-        int lvl = 0;
-        while (lvl < MAX_LEVEL && random.nextDouble() < P) {
-            lvl++;
-        }
-        return lvl;
     }
 }
 
