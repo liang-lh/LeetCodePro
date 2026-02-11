@@ -3,30 +3,37 @@
 #
 # [3448] Count Substrings Divisible By Last Digit
 #
+
 # @lc code=start
 class Solution {
     public long countSubstrings(String s) {
-        long count = 0;
         int n = s.length();
-        
-        for (int i = 0; i < n; i++) {
-            if (s.charAt(i) == '0') continue;
-            
-            int d = s.charAt(i) - '0';
-            int mod = 0;
-            int power = 1;
-            
-            for (int j = i; j >= 0; j--) {
-                int digit = s.charAt(j) - '0';
-                mod = (mod + digit * power) % d;
-                power = (power * 10) % d;
-                if (mod == 0) {
-                    count++;
+        long ans = 0;
+        for (int d = 1; d <= 9; d++) {
+            long[] cur = new long[10];
+            long[] nxt = new long[10];
+            for (int i = 0; i < n; i++) {
+                int dig = s.charAt(i) - '0';
+                for (int k = 0; k < 10; k++) {
+                    nxt[k] = 0;
+                }
+                for (int m = 0; m < d; m++) {
+                    long val = cur[m];
+                    if (val == 0) continue;
+                    int newm = (int) (((long) m * 10 + dig) % d);
+                    nxt[newm] += val;
+                }
+                int sm = dig % d;
+                nxt[sm]++;
+                if (dig == d) {
+                    ans += nxt[0];
+                }
+                for (int k = 0; k < d; k++) {
+                    cur[k] = nxt[k];
                 }
             }
         }
-        
-        return count;
+        return ans;
     }
 }
 # @lc code=end
