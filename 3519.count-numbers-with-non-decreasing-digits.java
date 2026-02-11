@@ -1,1 +1,90 @@
-#\n# @lc app=leetcode id=3519 lang=java\n#\n# [3519] Count Numbers with Non-Decreasing Digits\n#\n\n# @lc code=start\nclass Solution {\n    public int countNumbers(String l, String r, int b) {\n        final long MOD = 1000000007L;\n        java.math.BigInteger bigL = new java.math.BigInteger(l);\n        java.math.BigInteger bigR = new java.math.BigInteger(r);\n        long cntR = count(bigR, b, MOD);\n        long cntLm1 = count(bigL.subtract(java.math.BigInteger.ONE), b, MOD);\n        long ans = (cntR - cntLm1 + MOD) % MOD;\n        return (int) ans;\n    }\n\n    private static long count(java.math.BigInteger n, int base, long mod) {\n        if (n.compareTo(java.math.BigInteger.ZERO) < 0) {\n            return 0L;\n        }\n        int[] digits = getBaseBDigits(n, base);\n        int len = digits.length;\n        long[][][] dp = new long[len + 1][2][base];\n        for (int t = 0; t < 2; ++t) {\n            for (int p = 0; p < base; ++p) {\n                dp[len][t][p] = (p == 0 ? 0L : 1L);\n            }\n        }\n        for (int pos = len - 1; pos >= 0; --pos) {\n            for (int t = 0; t < 2; ++t) {\n                int up = t == 1 ? digits[pos] : base - 1;\n                for (int p = 0; p < base; ++p) {\n                    long res = 0L;\n                    for (int d = 0; d <= up; ++d) {\n                        if (p != 0 && d < p) continue;\n                        int np = p == 0 ? (d == 0 ? 0 : d) : d;\n                        int nt = (t == 1 && d == up) ? 1 : 0;\n                        res = (res + dp[pos + 1][nt][np]) % mod;\n                    }\n                    dp[pos][t][p] = res;\n                }\n            }\n        }\n        return dp[0][1][0];\n    }\n\n    private static int[] getBaseBDigits(java.math.BigInteger n, int base) {\n        java.util.List<java.lang.Integer> digits = new java.util.ArrayList<>();\n        java.math.BigInteger bb = java.math.BigInteger.valueOf((long) base);\n        java.math.BigInteger num = n;\n        while (num.compareTo(java.math.BigInteger.ZERO) > 0) {\n            digits.add(num.mod(bb).intValue());\n            num = num.divide(bb);\n        }\n        java.util.Collections.reverse(digits);\n        int[] res = new int[digits.size()];\n        for (int i = 0; i < res.length; ++i) {\n            res[i] = digits.get(i);\n        }\n        return res;\n    }\n}\n# @lc code=end
+#
+# @lc app=leetcode id=3519 lang=java
+#
+# [3519] Count Numbers with Non-Decreasing Digits
+#
+
+# @lc code=start
+class Solution {
+    private static final int MOD = 1000000007;
+    private static final int MAXL = 355;
+    private static final int MAXD = 12;
+
+    private long[][][][] dp;
+    private int[][][][] visits;
+    private int vers;
+    private int basee;
+    private java.util.List<java.lang.Integer> ddigits;
+    private int leng;
+
+    public int countNumbers(String l, String r, int b) {
+        dp = new long[MAXL][MAXD][2][2];
+        visits = new int[MAXL][MAXD][2][2];
+        vers = 0;
+        long cntR = solve(r, b);
+        String lm1 = decrement(l);
+        long cntL = solve(lm1, b);
+        return (int) ((cntR - cntL + MOD) % MOD);
+    }
+
+    private long solve(String s, int b) {
+        if ("0".equals(s)) {
+            return 0L;
+        }
+        java.math.BigInteger num = new java.math.BigInteger(s);
+        ddigits = getBaseBDigits(num, b);
+        leng = ddigits.size();
+        basee = b;
+        vers++;
+        return dfs(0, 0, 1, 1);
+    }
+
+    private long dfs(int pos, int pre, int tig, int lzero) {
+        if (pos == leng) {
+            return lzero == 0 ? 1L : 0L;
+        }
+        if (visits[pos][pre][tig][lzero] == vers) {
+            return dp[pos][pre][tig][lzero];
+        }
+        visits[pos][pre][tig][lzero] = vers;
+        dp[pos][pre][tig][lzero] = 0L;
+        int up = tig == 1 ? ddigits.get(pos) : basee - 1;
+        for (int d = 0; d <= up; d++) {
+            int new_lz = (lzero == 1 && d == 0) ? 1 : 0;
+            int new_pre;
+            if (new_lz == 1) {
+                new_pre = 0;
+            } else {
+                if (lzero == 1) {
+                    new_pre = d;
+                } else {
+                    if (d < pre) continue;
+                    new_pre = d;
+                }
+            }
+            int new_tig = (tig == 1 && d == up) ? 1 : 0;
+            dp[pos][pre][tig][lzero] = (dp[pos][pre][tig][lzero] + dfs(pos + 1, new_pre, new_tig, new_lz)) % MOD;
+        }
+        return dp[pos][pre][tig][lzero];
+    }
+
+    private java.util.List<java.lang.Integer> getBaseBDigits(java.math.BigInteger n, int b) {
+        java.util.List<java.lang.Integer> digs = new java.util.ArrayList<java.lang.Integer>();
+        if (n.equals(java.math.BigInteger.ZERO)) {
+            digs.add(0);
+            return digs;
+        }
+        java.math.BigInteger bb = java.math.BigInteger.valueOf((long) b);
+        while (n.compareTo(java.math.BigInteger.ZERO) > 0) {
+            digs.add(n.mod(bb).intValue());
+            n = n.divide(bb);
+        }
+        java.util.Collections.reverse(digs);
+        return digs;
+    }
+
+    private String decrement(String s) {
+        return new java.math.BigInteger(s).subtract(java.math.BigInteger.ONE).toString();
+    }
+}
+# @lc code=end
