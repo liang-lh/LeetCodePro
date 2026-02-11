@@ -3,75 +3,36 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
+
 # @lc code=start
 class Solution {
     public int countBinaryPalindromes(long n) {
         if (n == 0) return 1;
-        
-        int count = 1; // for 0
-        
-        // Get bit length of n
-        String nBinary = Long.toBinaryString(n);
-        int maxLen = nBinary.length();
-        
-        // Count palindromes for all lengths < maxLen
-        for (int len = 1; len < maxLen; len++) {
-            if (len == 1) {
-                count += 1; // "1"
-            } else if (len % 2 == 0) {
-                // Even length: 2^(len/2 - 1) palindromes
-                count += (1 << (len / 2 - 1));
-            } else {
-                // Odd length: 2^((len+1)/2 - 1) palindromes
-                count += (1 << ((len + 1) / 2 - 1));
+        int bitlen = 64 - Long.numberOfLeadingZeros(n);
+        long cnt = 1L; // 0
+        for (int len = 1; len < bitlen; len++) {
+            int llen = (len + 1) / 2;
+            cnt += 1L << (llen - 1);
+        }
+        // length = bitlen
+        int len = bitlen;
+        int half = len / 2;
+        int llen = (len + 1) / 2;
+        long istart = 1L << (llen - 1);
+        long iend = 1L << llen;
+        for (long i = istart; i < iend; i++) {
+            long prefix = i >> (len % 2);
+            long rev = 0;
+            long temp = prefix;
+            for (int j = 0; j < half; j++) {
+                rev = (rev << 1) | (temp & 1);
+                temp >>= 1;
             }
+            long num = (i << half) | rev;
+            if (num > n) break;
+            cnt++;
         }
-        
-        // Count palindromes of length maxLen that are <= n
-        count += countPalindromesOfLength(maxLen, n);
-        
-        return count;
-    }
-    
-    private int countPalindromesOfLength(int len, long n) {
-        int count = 0;
-        
-        if (len == 1) {
-            return 1; // "1" is always <= n for n >= 1
-        }
-        
-        // Generate all palindromes of this length
-        int halfLen = (len + 1) / 2;
-        long maxHalf = 1L << (halfLen - 1); // start from 10...0 (first bit is 1)
-        long endHalf = 1L << halfLen; // end at 100...0
-        
-        for (long half = maxHalf; half < endHalf; half++) {
-            long palindrome = makePalindrome(half, len);
-            if (palindrome <= n) {
-                count++;
-            } else {
-                break; // Since we're generating in order
-            }
-        }
-        
-        return count;
-    }
-    
-    private long makePalindrome(long half, int len) {
-        String halfStr = Long.toBinaryString(half);
-        StringBuilder sb = new StringBuilder(halfStr);
-        
-        if (len % 2 == 0) {
-            // Even length: mirror all bits
-            String reversed = new StringBuilder(halfStr).reverse().toString();
-            sb.append(reversed);
-        } else {
-            // Odd length: mirror all bits except the middle one
-            String reversed = new StringBuilder(halfStr.substring(0, halfStr.length() - 1)).reverse().toString();
-            sb.append(reversed);
-        }
-        
-        return Long.parseLong(sb.toString(), 2);
+        return (int) cnt;
     }
 }
 # @lc code=end
