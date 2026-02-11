@@ -3,49 +3,31 @@
 #
 # [3434] Maximum Frequency After Subarray Operation
 #
+
 # @lc code=start
 class Solution {
-    public int maxFrequency(int[] nums, int k) {
-        int n = nums.length;
-        int baseCount = 0;
-        
-        // Count initial frequency of k
-        for (int num : nums) {
-            if (num == k) {
-                baseCount++;
-            }
-        }
-        
-        int maxFreq = baseCount; // At least we have the base count
-        
-        // Try all possible values of x
-        for (int x = -50; x <= 50; x++) {
-            int[] benefit = new int[n];
-            
-            for (int i = 0; i < n; i++) {
-                if (nums[i] == k - x && nums[i] != k) {
-                    benefit[i] = 1;  // Gain: this element becomes k
-                } else if (nums[i] == k && x != 0) {
-                    benefit[i] = -1;  // Loss: this k becomes non-k
-                } else {
-                    benefit[i] = 0;  // No change
-                }
-            }
-            
-            // Kadane's algorithm to find maximum subarray sum
-            int maxBenefit = 0;  // Can choose empty subarray
-            int currentSum = 0;
-            
-            for (int b : benefit) {
-                currentSum = Math.max(0, currentSum + b);
-                maxBenefit = Math.max(maxBenefit, currentSum);
-            }
-            
-            int freq = baseCount + maxBenefit;
-            maxFreq = Math.max(maxFreq, freq);
-        }
-        
-        return maxFreq;
+  public int maxFrequency(int[] nums, int k) {
+    int n = nums.length;
+    int totalK = 0;
+    for (int num : nums) {
+      if (num == k) totalK++;
     }
+    int ans = totalK;
+    for (int v = 1; v <= 50; v++) {
+      if (v == k) continue;
+      int maxEnd = 0;
+      int maxFar = 0;
+      for (int i = 0; i < n; i++) {
+        int score = 0;
+        if (nums[i] == v) score = 1;
+        else if (nums[i] == k) score = -1;
+        maxEnd += score;
+        if (maxEnd < 0) maxEnd = 0;
+        if (maxEnd > maxFar) maxFar = maxEnd;
+      }
+      if (totalK + maxFar > ans) ans = totalK + maxFar;
+    }
+    return ans;
+  }
 }
 # @lc code=end
