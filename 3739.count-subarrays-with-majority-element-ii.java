@@ -7,15 +7,15 @@
 # @lc code=start
 class Solution {
     private static class FenwickTree {
-        int[] tree;
+        long[] tree;
         int n;
         public FenwickTree(int _n) {
             n = _n;
-            tree = new int[_n + 1];
+            tree = new long[_n + 1];
         }
-        public void update(int idx, int delta) {
+        public void update(int idx, long val) {
             while (idx <= n) {
-                tree[idx] += delta;
+                tree[idx] += val;
                 idx += idx & -idx;
             }
         }
@@ -30,20 +30,16 @@ class Solution {
     }
 
     public long countMajoritySubarrays(int[] nums, int target) {
-        int n = nums.length;
-        int OFFSET = 100001;
-        int MAXN = 200010;
+        final int OFFSET = 100001;
+        final int MAXN = 200002;
         FenwickTree ft = new FenwickTree(MAXN);
-        int[] prefix = new int[n + 1];
-        for (int i = 1; i <= n; i++) {
-            prefix[i] = prefix[i - 1] + (nums[i - 1] == target ? 1 : -1);
-        }
-        long ans = 0;
-        ft.update(prefix[0] + OFFSET, 1);
-        for (int j = 1; j <= n; j++) {
-            int cur = prefix[j] + OFFSET;
-            ans += ft.query(cur - 1);
-            ft.update(cur, 1);
+        ft.update(0 + OFFSET, 1L);
+        int pref = 0;
+        long ans = 0L;
+        for (int num : nums) {
+            pref += (num == target ? 1 : -1);
+            ans += ft.query(pref - 1 + OFFSET);
+            ft.update(pref + OFFSET, 1L);
         }
         return ans;
     }
