@@ -3,146 +3,201 @@
 #
 # [3501] Maximize Active Section with Trade II
 #
-
 # @lc code=start
+import java.util.*;
 class Solution {
+    static class Island {
+        int start, end, fullL, fullR, lstart, rend;
+        Island(int s1, int e1, int fl, int fr, int ls, int re) {
+            start = s1; end = e1; fullL = fl; fullR = fr; lstart = ls; rend = re;
+        }
+    }
+
+    static class SegTree {
+        int[] tree;
+        int n;
+        SegTree(int[] arr) {
+            n = arr.length;
+            tree = new int[4 * n];
+            build(1, 0, n - 1, arr);
+        }
+        void build(int node, int s, int e, int[] arr) {
+            if (s == e) {
+                tree[node] = arr[s];
+                return;
+            }
+            int m = (s + e) / 2;
+            build(2 * node, s, m, arr);
+            build(2 * node + 1, m + 1, e, arr);
+            tree[node] = Math.max(tree[2 * node], tree[2 * node + 1]);
+        }
+        int query(int node, int s, int e, int qs, int qe) {
+            if (qs > e || qe < s) return Integer.MIN_VALUE / 2;
+            if (qs <= s && e <= qe) return tree[node];
+            int m = (s + e) / 2;
+            return Math.max(query(2 * node, s, m, qs, qe), query(2 * node + 1, m + 1, e, qs, qe));
+        }
+        int get(int l, int r) {
+            if (l > r) return Integer.MIN_VALUE / 2;
+            return query(1, 0, n - 1, l, r);
+        }
+    }
+
+    private int lowerBound(int[] arr, int val) {
+        int low = 0, high = arr.length;
+        while (low < high) {
+            int mid = (low + high) / 2;
+            if (arr[mid] >= val) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+
+    private int upperBound(int[] arr, int val) {
+        int low = 0, high = arr.length;
+        while (low < high) {
+            int mid = (low + high) / 2;
+            if (arr[mid] > val) high = mid;
+            else low = mid + 1;
+        }
+        return low;
+    }
+
     public List<Integer> maxActiveSectionsAfterTrade(String s, int[][] queries) {
         int n = s.length();
-        int total_ones = 0;
-        for (int i = 0; i < n; i++) {
-            if (s.charAt(i) == '1') total_ones++;
-        }
-        java.util.ArrayList<Integer> ps_ = new java.util.ArrayList<>();
-        java.util.ArrayList<Integer> qs_ = new java.util.ArrayList<>();
-        java.util.ArrayList<Integer> ls_ = new java.util.ArrayList<>();
-        java.util.ArrayList<Integer> rs_ = new java.util.ArrayList<>();
-        for (int i = 0; i < n; ) {
-            if (i > 0 && s.charAt(i) == '1' && s.charAt(i - 1) == '0') {
-                int p = i;
-                int q = i;
-                while (q + 1 < n && s.charAt(q + 1) == '1') q++;
-                if (q + 1 < n && s.charAt(q + 1) == '0') {
-                    // left_len
-                    int ll = 0;
-                    for (int pos = p - 1; pos >= 0 && s.charAt(pos) == '0'; pos--) ll++;
-                    // right_len
-                    int rr = 0;
-                    for (int pos = q + 1; pos < n && s.charAt(pos) == '0'; pos++) rr++;
-                    ps_.add(p);
-                    qs_.add(q);
-                    ls_.add(ll);
-                    rs_.add(rr);
-                }
-                i = q + 1;
-            } else {
-                i++;
-            }
-        }
-        int m = ps_.size();
-        if (m == 0) {
-            java.util.List<Integer> answer = new java.util.ArrayList<>();
-            for (int[] qu : queries) {
-                answer.add(total_ones);
-            }
-            return answer;
-        }
-        int[] Ps = new int[m];
-        int[] Qs = new int[m];
-        int[] Ls = new int[m];
-        int[] Rs = new int[m];
-        int[] Vals = new int[m];
-        for (int j = 0; j < m; j++) {
-            Ps[j] = ps_.get(j);
-            Qs[j] = qs_.get(j);
-            Ls[j] = ls_.get(j);
-            Rs[j] = rs_.get(j);
-            Vals[j] = Ls[j] + Rs[j];
-        }
-        // sparse table
-        int LOG = 18;
-        int[][] sparse = new int[LOG][m];
-        for (int j = 0; j < m; j++) {
-            sparse[0][j] = Vals[j];
-        }
-        for (int k = 1; k < LOG; k++) {
-            for (int j = 0; j + (1 << k) <= m; j++) {
-                sparse[k][j] = Math.max(sparse[k - 1][j], sparse[k - 1][j + (1 << (k - 1))]);
-            }
-        }
-        java.util.List<Integer> answer = new java.util.ArrayList<>();
-        for (int[] qu : queries) {
-            int l = qu[0];
-            int r = qu[1];
-            // jL: first Ps[j] > l
-            int jL = 0;
-            int jH = m;
-            while (jL < jH) {
-                int mid = (jL + jH) / 2;
-                if (Ps[mid] > l) {
-                    jH = mid;
-                } else {
-                    jL = mid + 1;
-                }
-            }
-            // jR: first Qs[j] >= r , -1
-            int low = 0;
-            int hi = m;
-            while (low < hi) {
-                int mid = (low + hi) / 2;
-                if (Qs[mid] >= r) {
-                    hi = mid;
-                } else {
-                    low = mid + 1;
-                }
-            }
-            int jR = low - 1;
-            if (jL > jR) {
-                answer.add(total_ones);
+        int total = 0;
+        for (int j = 0; j < n; ++j) if (s.charAt(j) == '1') ++total;
+        List<Island> islandsList = new ArrayList<>();
+        int ii = 0;
+        while (ii < n) {
+            if (s.charAt(ii) == '0') {
+                while (ii < n && s.charAt(ii) == '0') ++ii;
                 continue;
             }
-            int numc = jR - jL + 1;
-            int mg = 0;
-            if (numc <= 2) {
-                for (int jj = jL; jj <= jR; jj++) {
-                    int pj = Ps[jj];
-                    int qj = Qs[jj];
-                    int ljv = Ls[jj];
-                    int rjv = Rs[jj];
-                    int le = Math.min(pj - l, ljv);
-                    int re = Math.min(r - qj, rjv);
-                    mg = Math.max(mg, le + re);
+            int st = ii;
+            while (ii < n && s.charAt(ii) == '1') ++ii;
+            int en = ii - 1;
+            // left hole: fullL, lstart = st - fullL
+            int fl = 0, ls = -1;
+            if (st > 0 && s.charAt(st - 1) == '0') {
+                int j = st - 1;
+                fl = 1;
+                while (j > 0 && s.charAt(j - 1) == '0') {
+                    --j;
+                    ++fl;
                 }
+                ls = j;  // fix: start of left hole
             } else {
-                int lefti = jL + 1;
-                int righti = jR - 1;
-                int klen = righti - lefti + 1;
-                int kk = 31 - Integer.numberOfLeadingZeros(klen);
-                int imax = Math.max(sparse[kk][lefti], sparse[kk][righti - (1 << kk) + 1]);
-                mg = imax;
-                // jL
-                {
-                    int pj = Ps[jL];
-                    int qj = Qs[jL];
-                    int ljv = Ls[jL];
-                    int rjv = Rs[jL];
-                    int le = Math.min(pj - l, ljv);
-                    int re = Math.min(r - qj, rjv);
-                    mg = Math.max(mg, le + re);
+                continue;
+            }
+            // right hole: fullR, rend = en + fullR
+            int fr = 0, re = -1;
+            if (en < n - 1 && s.charAt(en + 1) == '0') {
+                int j = en + 1;
+                fr = 1;
+                while (j < n - 1 && s.charAt(j + 1) == '0') {
+                    ++j;
+                    ++fr;
                 }
-                // jR
-                {
-                    int pj = Ps[jR];
-                    int qj = Qs[jR];
-                    int ljv = Ls[jR];
-                    int rjv = Rs[jR];
-                    int le = Math.min(pj - l, ljv);
-                    int re = Math.min(r - qj, rjv);
-                    mg = Math.max(mg, le + re);
+                re = j;  // fix: end of right hole
+            } else {
+                continue;
+            }
+            islandsList.add(new Island(st, en, fl, fr, ls, re));
+        }
+        int m = islandsList.size();
+        if (m == 0) {
+            int ql = queries.length;
+            List<Integer> ans = new ArrayList<>(ql);
+            for (int q = 0; q < ql; ++q) ans.add(total);
+            return ans;
+        }
+        int[] istart = new int[m];
+        int[] iend = new int[m];
+        int[] lstart_pos = new int[m];
+        int[] rend_pos = new int[m];
+        int[] fullL = new int[m];
+        int[] fullR = new int[m];
+        for (int k = 0; k < m; ++k) {
+            Island isl = islandsList.get(k);
+            istart[k] = isl.start;
+            iend[k] = isl.end;
+            lstart_pos[k] = isl.lstart;
+            rend_pos[k] = isl.rend;
+            fullL[k] = isl.fullL;
+            fullR[k] = isl.fullR;
+        }
+        int[] valA = new int[m];  // st + fullR
+        int[] valB = new int[m];  // st - en
+        int[] valC = new int[m];  // fullL + fullR
+        int[] valD = new int[m];  // fullL - en
+        for (int k = 0; k < m; ++k) {
+            valA[k] = istart[k] + fullR[k];
+            valB[k] = istart[k] - iend[k];
+            valC[k] = fullL[k] + fullR[k];
+            valD[k] = fullL[k] - iend[k];
+        }
+        SegTree segA = new SegTree(valA);
+        SegTree segB = new SegTree(valB);
+        SegTree segC = new SegTree(valC);
+        SegTree segD = new SegTree(valD);
+        int qlen = queries.length;
+        List<Integer> ans = new ArrayList<>(qlen);
+        for (int q = 0; q < qlen; ++q) {
+            int li = queries[q][0];
+            int ri = queries[q][1];
+            int idxL = lowerBound(istart, li + 1);
+            int idxR = upperBound(iend, ri - 1) - 1;
+            if (idxL > idxR) {
+                ans.add(total);
+                continue;
+            }
+            int pp = lowerBound(lstart_pos, li);
+            int qq = upperBound(rend_pos, ri) - 1;
+            int mg = 0;
+            // Case A: left partial (lstart < li), right full (rend <= ri)
+            {
+                int al = idxL;
+                int ar = Math.min(idxR, Math.min(pp - 1, qq));
+                if (al <= ar) {
+                    int vmax = segA.get(al, ar);
+                    int ga = vmax - li;
+                    mg = Math.max(mg, ga);
                 }
             }
-            answer.add(total_ones + mg);
+            // Case B: left partial, right partial
+            {
+                int bl = Math.max(idxL, qq + 1);
+                int br = Math.min(idxR, pp - 1);
+                if (bl <= br) {
+                    int vmax = segB.get(bl, br);
+                    int gb = vmax + ri - li;
+                    mg = Math.max(mg, gb);
+                }
+            }
+            // Case C: left full, right full
+            {
+                int cl = Math.max(idxL, pp);
+                int cr = Math.min(idxR, qq);
+                if (cl <= cr) {
+                    int vmax = segC.get(cl, cr);
+                    mg = Math.max(mg, vmax);
+                }
+            }
+            // Case D: left full, right partial
+            {
+                int dl = Math.max(idxL, pp);
+                int dr = idxR;
+                dl = Math.max(dl, qq + 1);
+                if (dl <= dr) {
+                    int vmax = segD.get(dl, dr);
+                    int gd = vmax + ri;
+                    mg = Math.max(mg, gd);
+                }
+            }
+            ans.add(total + Math.max(0, mg));
         }
-        return answer;
+        return ans;
     }
 }
 # @lc code=end
