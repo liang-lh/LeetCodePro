@@ -8,86 +8,46 @@
 class Solution {
     public long[] countStableSubarrays(int[] nums, int[][] queries) {
         int n = nums.length;
-        int q = queries.length;
-        long[] ans = new long[q];
-
-        // Single pass: collect segments using lists
-        java.util.List<Integer> segStartList = new java.util.ArrayList<>();
-        java.util.List<Integer> segEndList = new java.util.ArrayList<>();
-        for (int i = 0; i < n; ) {
-            int j = i;
-            while (j + 1 < n && nums[j + 1] >= nums[j]) ++j;
-            segStartList.add(i);
-            segEndList.add(j);
-            i = j + 1;
-        }
-        int K = segStartList.size();
-        int[] segStart = new int[K];
-        int[] segEnd = new int[K];
-        for (int k = 0; k < K; ++k) {
-            segStart[k] = segStartList.get(k);
-            segEnd[k] = segEndList.get(k);
-        }
-
-        // Precompute triangular numbers and prefix sums
-        long[] segTotal = new long[K];
-        long[] pref = new long[K + 1];
-        for (int j = 0; j < K; ++j) {
-            int len_ = segEnd[j] - segStart[j] + 1;
-            segTotal[j] = (long) len_ * (len_ + 1) / 2;
-            pref[j + 1] = pref[j] + segTotal[j];
-        }
-
-        // Process queries
-        for (int qi = 0; qi < q; ++qi) {
-            int L = queries[qi][0];
-            int R = queries[qi][1];
-
-            // Binary search for jL: largest j where segStart[j] <= L
-            int low = 0, high = K - 1;
-            while (low <= high) {
-                int mid = low + (high - low) / 2;
-                if (segStart[mid] <= L) {
-                    low = mid + 1;
-                } else {
-                    high = mid - 1;
+        int[] start_pos = new int[n];
+        int[] end_pos = new int[n];
+        int cur_start = 0;
+        for (int i = 1; i < n; ++i) {
+            if (nums[i - 1] > nums[i]) {
+                for (int j = cur_start; j < i; ++j) {
+                    start_pos[j] = cur_start;
+                    end_pos[j] = i - 1;
                 }
+                cur_start = i;
             }
-            int jL = high;
-
-            // Binary search for jR: largest j where segStart[j] <= R
-            low = 0;
-            high = K - 1;
-            while (low <= high) {
-                int mid = low + (high - low) / 2;
-                if (segStart[mid] <= R) {
-                    low = mid + 1;
-                } else {
-                    high = mid - 1;
-                }
-            }
-            int jR = high;
-
-            long res;
-            if (jL == jR) {
-                int m = R - L + 1;
-                res = (long) m * (m + 1) / 2;
-            } else {
-                // Left partial: L to segEnd[jL]
-                int eL = segEnd[jL];
-                long mL = (long) eL - L + 1;
-                long numL = mL * (mL + 1) / 2;
-                // Right partial: segStart[jR] to R
-                int sR = segStart[jR];
-                long mR = (long) R - sR + 1;
-                long numR = mR * (mR + 1) / 2;
-                // Middle full segments: jL+1 to jR-1
-                long numMid = pref[jR] - pref[jL + 1];
-                res = numL + numR + numMid;
-            }
-            ans[qi] = res;
         }
-
+        for (int j = cur_start; j < n; ++j) {
+            start_pos[j] = cur_start;
+            end_pos[j] = n - 1;
+        }
+        long[] prefix_j = new long[n + 1];
+        for (int i = 1; i <= n; ++i) {
+            prefix_j[i] = prefix_j[i - 1] + (i - 1L);
+        }
+        long[] prefix_start_pos = new long[n + 1];
+        for (int i = 1; i <= n; ++i) {
+            prefix_start_pos[i] = prefix_start_pos[i - 1] + start_pos[i - 1];
+        }
+        long[] ans = new long[queries.length];
+        for (int qi = 0; qi < queries.length; ++qi) {
+            int l = queries[qi][0];
+            int r = queries[qi][1];
+            int run_end = end_pos[l];
+            int partial_end = Math.min(r, run_end);
+            long num_partial = (long) partial_end - l + 1;
+            long sum_j = prefix_j[r + 1] - prefix_j[l];
+            long count_tot = (long) r - l + 1;
+            long sum_max_val = (long) l * num_partial;
+            int next_j_start = partial_end + 1;
+            if (next_j_start <= r) {
+                sum_max_val += prefix_start_pos[r + 1] - prefix_start_pos[next_j_start];
+            }
+            ans[qi] = sum_j + count_tot - sum_max_val;
+        }
         return ans;
     }
 }
