@@ -3,68 +3,59 @@
 #
 # [3493] Properties Graph
 #
-# @lc code=start
-import java.util.*;
 
+# @lc code=start
 class Solution {
+    private int find(int x, int[] parent) {
+        int root = x;
+        while (parent[root] != root) {
+            root = parent[root];
+        }
+        int cur = x;
+        while (cur != root) {
+            int nxt = parent[cur];
+            parent[cur] = root;
+            cur = nxt;
+        }
+        return root;
+    }
+
     public int numberOfComponents(int[][] properties, int k) {
         int n = properties.length;
-        
-        // Initialize Union-Find structure
+        boolean[][] pres = new boolean[n][101];
+        for (int i = 0; i < n; i++) {
+            for (int val : properties[i]) {
+                pres[i][val] = true;
+            }
+        }
         int[] parent = new int[n];
         for (int i = 0; i < n; i++) {
             parent[i] = i;
         }
-        
-        // Check all pairs and union if intersection >= k
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
-                if (countIntersection(properties[i], properties[j]) >= k) {
-                    union(parent, i, j);
+                int common = 0;
+                for (int v = 1; v <= 100; v++) {
+                    if (pres[i][v] && pres[j][v]) {
+                        common++;
+                    }
+                }
+                if (common >= k) {
+                    int pi = find(i, parent);
+                    int pj = find(j, parent);
+                    if (pi != pj) {
+                        parent[pi] = pj;
+                    }
                 }
             }
         }
-        
-        // Count connected components
-        int components = 0;
+        int comp = 0;
         for (int i = 0; i < n; i++) {
-            if (find(parent, i) == i) {
-                components++;
+            if (find(i, parent) == i) {
+                comp++;
             }
         }
-        
-        return components;
-    }
-    
-    private int countIntersection(int[] a, int[] b) {
-        Set<Integer> setA = new HashSet<>();
-        for (int num : a) {
-            setA.add(num);
-        }
-        
-        Set<Integer> intersection = new HashSet<>();
-        for (int num : b) {
-            if (setA.contains(num)) {
-                intersection.add(num);
-            }
-        }
-        
-        return intersection.size();
-    }
-    
-    private int find(int[] parent, int x) {
-        if (parent[x] != x) {
-            parent[x] = find(parent, parent[x]); // Path compression
-        }
-        return parent[x];
-    }
-    
-    private void union(int[] parent, int x, int y) {
-        int rootX = find(parent, x);
-        int rootY = find(parent, y);
-        if (rootX != rootY) {
-            parent[rootX] = rootY;
-        }
+        return comp;
     }
 }
 # @lc code=end
