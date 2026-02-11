@@ -6,77 +6,131 @@
 
 # @lc code=start
 class Solution {
+    static class FenwickTree {
+        private long[] tree;
+        private int n;
+        
+        FenwickTree(int nn) {
+            n = nn;
+            tree = new long[nn + 2];
+        }
+        
+        void update(int idx, long delta) {
+            while (idx <= n) {
+                tree[idx] += delta;
+                idx += idx & -idx;
+            }
+        }
+        
+        long query(int idx) {
+            long sum = 0;
+            while (idx > 0) {
+                sum += tree[idx];
+                idx -= idx & -idx;
+            }
+            return sum;
+        }
+    }
+    
     public int[] treeQueries(int n, int[][] edges, int[][] queries) {
-        @SuppressWarnings("unchecked")
-        java.util.List<int[]>[] adj = new java.util.List[n + 1];
+        java.util.List<int[]>[] adj = new java.util.ArrayList[n + 1];
         for (int i = 1; i <= n; i++) {
-            adj[i] = new java.util.ArrayList<>();
+            adj[i] = new java.util.ArrayList<int[]>();
         }
         for (int[] e : edges) {
-            int u = e[0], v = e[1], w = e[2];
-            adj[u].add(new int[]{v, w});
-            adj[v].add(new int[]{u, w});
+            adj[e[0]].add(new int[]{e[1], e[2]});
+            adj[e[1]].add(new int[]{e[0], e[2]});
         }
+        
+        int[] dfn = new int[n + 1];
+        int[] sz = new int[n + 1];
         int[] parent = new int[n + 1];
-        int[] edgeToParW = new int[n + 1];
-        int[] inTime = new int[n + 1];
-        int[] outTime = new int[n + 1];
-        int[] initDist = new int[n + 1];
-        int[] tim = {1};
-        dfs(1, 0, 0, 0, adj, parent, edgeToParW, inTime, outTime, initDist, tim);
-        class FenwickTree {
-            int[] tree;
-            FenwickTree(int size) {
-                tree = new int[size + 2];
-            }
-            void update(int idx, int val) {
-                while (idx < tree.length) {
-                    tree[idx] += val;
-                    idx += idx & -idx;
-                }
-            }
-            int query(int idx) {
-                int sum = 0;
-                while (idx > 0) {
-                    sum += tree[idx];
-                    idx -= idx & -idx;
-                }
-                return sum;
+        int[] val = new int[n + 1];
+        java.util.List<Integer>[] children = new java.util.ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            children[i] = new java.util.ArrayList<Integer>();
+        }
+        
+        // BFS to compute parent, val, children
+        java.util.Queue<Integer> q = new java.util.LinkedList<Integer>();
+        parent[1] = 0;
+        val[1] = 0;
+        q.offer(1);
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            for (int[] ne : adj[u]) {
+                int v = ne[0];
+                int w = ne[1];
+                if (v == parent[u]) continue;
+                parent[v] = u;
+                val[v] = w;
+                children[u].add(v);
+                q.offer(v);
             }
         }
+        
+        // Iterative sz bottom-up
+        int[] remaining = new int[n + 1];
+        java.util.Queue<Integer> qq = new java.util.LinkedList<Integer>();
+        for (int u = 1; u <= n; u++) {
+            sz[u] = 1;
+            remaining[u] = children[u].size();
+            if (remaining[u] == 0) {
+                qq.offer(u);
+            }
+        }
+        while (!qq.isEmpty()) {
+            int u = qq.poll();
+            int p = parent[u];
+            if (p != 0) {
+                sz[p] += sz[u];
+                remaining[p]--;
+                if (remaining[p] == 0) {
+                    qq.offer(p);
+                }
+            }
+        }
+        
+        // Iterative preorder dfn
+        int timer = 0;
+        java.util.Stack<Integer> st = new java.util.Stack<Integer>();
+        st.push(1);
+        while (!st.isEmpty()) {
+            int u = st.pop();
+            dfn[u] = ++timer;
+            for (int i = children[u].size() - 1; i >= 0; i--) {
+                st.push(children[u].get(i));
+            }
+        }
+        
         FenwickTree ft = new FenwickTree(n + 1);
-        java.util.List<java.lang.Integer> answer = new java.util.ArrayList<>();
-        for (int[] q : queries) {
-            if (q[0] == 1) {
-                int u = q[1], v = q[2], newW = q[3];
-                int child = (parent[v] == u ? v : u);
-                int oldW = edgeToParW[child];
-                int delta = newW - oldW;
-                edgeToParW[child] = newW;
-                int L = inTime[child];
-                int R = outTime[child];
-                ft.update(L, delta);
-                ft.update(R, -delta);
+        for (int u = 2; u <= n; u++) {
+            long v = val[u];
+            ft.update(dfn[u], v);
+            ft.update(dfn[u] + sz[u], -v);
+        }
+        
+        int type2cnt = 0;
+        for (int[] qu : queries) {
+            if (qu[0] == 2) type2cnt++;
+        }
+        int[] answer = new int[type2cnt];
+        int idx = 0;
+        
+        for (int[] qu : queries) {
+            if (qu[0] == 1) {
+                int u = qu[1], v = qu[2], w = qu[3];
+                int c = (parent[u] == v ? u : v);
+                long delta = (long) w - val[c];
+                val[c] = w;
+                ft.update(dfn[c], delta);
+                ft.update(dfn[c] + sz[c], -delta);
             } else {
-                int x = q[1];
-                int curDist = initDist[x] + ft.query(inTime[x]);
-                answer.add(curDist);
+                int x = qu[1];
+                answer[idx++] = (int) ft.query(dfn[x]);
             }
         }
-        return answer.stream().mapToInt(java.lang.Integer::intValue).toArray();
-    }
-    private static void dfs(int u, int p, int dist, int wFromP, java.util.List<int[]>[] adj, int[] parent, int[] edgeToParW, int[] inTime, int[] outTime, int[] initDist, int[] tim) {
-        parent[u] = p;
-        edgeToParW[u] = wFromP;
-        initDist[u] = dist;
-        inTime[u] = tim[0]++;
-        for (int[] ne : adj[u]) {
-            int v = ne[0];
-            if (v != p) {
-                dfs(v, u, dist + ne[1], ne[1], adj, parent, edgeToParW, inTime, outTime, initDist, tim);
-            }
-        }
-        outTime[u] = tim[0];
+        return answer;
     }
 }
 # @lc code=end
