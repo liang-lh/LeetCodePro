@@ -1,123 +1,109 @@
-//
-// @lc app=leetcode id=3414 lang=java
-//
-// [3414] Maximum Score of Non-overlapping Intervals
-//
-// @lc code=start
-import java.util.*;
+#
+# @lc app=leetcode id=3414 lang=java
+#
+# [3414] Maximum Score of Non-overlapping Intervals
+#
 
+# @lc code=start
 class Solution {
     public int[] maximumWeight(List<List<Integer>> intervals) {
         int n = intervals.size();
-        
-        // Create indexed intervals
-        Interval[] arr = new Interval[n];
+        List<int[]> ints = new ArrayList<>();
         for (int i = 0; i < n; i++) {
-            arr[i] = new Interval(
-                intervals.get(i).get(0),
-                intervals.get(i).get(1),
-                intervals.get(i).get(2),
-                i
-            );
+            List<Integer> row = intervals.get(i);
+            ints.add(new int[]{row.get(0), row.get(1), row.get(2), i});
         }
-        
-        // Sort by end time
-        Arrays.sort(arr, (a, b) -> Integer.compare(a.end, b.end));
-        
-        // DP state: dp[i][k] = {weight, indices}
-        State[][] dp = new State[n + 1][5];
+        ints.sort((a, b) -> Integer.compare(a[1], b[1]));
+        int[] ends = new int[n];
+        for (int i = 0; i < n; i++) ends[i] = ints.get(i)[1];
+        long[][] scores = new long[n + 1][5];
+        List<Integer>[][] paths = new List[n + 1][5];
         for (int i = 0; i <= n; i++) {
-            for (int k = 0; k <= 4; k++) {
-                dp[i][k] = new State(0, new ArrayList<>());
+            for (int j = 0; j < 5; j++) {
+                paths[i][j] = new ArrayList<Integer>();
+                scores[i][j] = (j == 0 ? 0L : -1L);
             }
         }
-        
-        for (int i = 1; i <= n; i++) {
-            Interval curr = arr[i - 1];
-            
-            // Option 1: Skip current interval
-            for (int k = 0; k <= 4; k++) {
-                dp[i][k] = new State(dp[i-1][k]);
+        Comparator<List<Integer>> lexComp = (List<Integer> a, List<Integer> b) -> {
+            int lena = a.size(), lenb = b.size();
+            int minl = Math.min(lena, lenb);
+            for (int k = 0; k < minl; k++) {
+                int cmp = Integer.compare(a.get(k), b.get(k));
+                if (cmp != 0) return cmp;
             }
-            
-            // Option 2: Take current interval
-            int prev = binarySearch(arr, i - 1, curr.start);
-            
-            for (int k = 1; k <= 4; k++) {
-                State prevState = prev == -1 ? new State(0, new ArrayList<>()) : dp[prev + 1][k - 1];
-                long newWeight = prevState.weight + curr.weight;
-                
-                if (newWeight > dp[i][k].weight) {
-                    List<Integer> newIndices = new ArrayList<>(prevState.indices);
-                    newIndices.add(curr.originalIndex);
-                    dp[i][k] = new State(newWeight, newIndices);
-                } else if (newWeight == dp[i][k].weight) {
-                    List<Integer> newIndices = new ArrayList<>(prevState.indices);
-                    newIndices.add(curr.originalIndex);
-                    if (isLexSmaller(newIndices, dp[i][k].indices)) {
-                        dp[i][k] = new State(newWeight, newIndices);
+            return Integer.compare(lena, lenb);
+        };
+        for (int i = 0; i < n; i++) {
+            int L = ints.get(i)[0];
+            int w = ints.get(i)[2];
+            int idx = ints.get(i)[3];
+            // binary search largest q < i with ends[q] < L
+            int q = -1;
+            int lo = 0, hi = i - 1;
+            while (lo <= hi) {
+                int mid = lo + (hi - lo) / 2;
+                if (ends[mid] < L) {
+                    q = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+            for (int j = 1; j <= 4; j++) {
+                // not take
+                scores[i + 1][j] = scores[i][j];
+                paths[i + 1][j].clear();
+                paths[i + 1][j].addAll(paths[i][j]);
+                // take?
+                long prev_s = -1L;
+                List<Integer> prev_p = new ArrayList<>();
+                boolean can_take = false;
+                if (q == -1) {
+                    if (j == 1) {
+                        prev_s = 0L;
+                        can_take = true;
+                    }
+                } else {
+                    long ps = scores[q + 1][j - 1];
+                    if (ps != -1L) {
+                        prev_s = ps;
+                        prev_p.addAll(paths[q + 1][j - 1]);
+                        can_take = true;
+                    }
+                }
+                if (can_take) {
+                    long new_s = prev_s + (long) w;
+                    List<Integer> new_p = new ArrayList<>(prev_p);
+                    new_p.add(idx);
+                    Collections.sort(new_p);
+                    long cur_s = scores[i + 1][j];
+                    boolean upd = (new_s > cur_s) || (new_s == cur_s && lexComp.compare(new_p, paths[i + 1][j]) < 0);
+                    if (upd) {
+                        scores[i + 1][j] = new_s;
+                        paths[i + 1][j].clear();
+                        paths[i + 1][j].addAll(new_p);
                     }
                 }
             }
         }
-        
-        // Find best solution
-        State best = new State(0, new ArrayList<>());
-        for (int k = 0; k <= 4; k++) {
-            if (dp[n][k].weight > best.weight) {
-                best = new State(dp[n][k]);
-            } else if (dp[n][k].weight == best.weight && isLexSmaller(dp[n][k].indices, best.indices)) {
-                best = new State(dp[n][k]);
+        long max_score = -1L;
+        List<Integer> best_path = new ArrayList<>();
+        for (int j = 0; j <= 4; j++) {
+            long ts = scores[n][j];
+            if (ts == -1L && j > 0) continue;
+            List<Integer> tp = paths[n][j];
+            boolean is_better = (ts > max_score) || (ts == max_score && lexComp.compare(tp, best_path) < 0);
+            if (is_better) {
+                max_score = ts;
+                best_path.clear();
+                best_path.addAll(tp);
             }
         }
-        
-        Collections.sort(best.indices);
-        return best.indices.stream().mapToInt(i -> i).toArray();
-    }
-    
-    private int binarySearch(Interval[] arr, int right, int targetStart) {
-        int left = 0, result = -1;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            if (arr[mid].end < targetStart) {
-                result = mid;
-                left = mid + 1;
-            } else {
-                right = mid - 1;
-            }
+        int[] res = new int[best_path.size()];
+        for (int k = 0; k < best_path.size(); k++) {
+            res[k] = best_path.get(k);
         }
-        return result;
-    }
-    
-    private boolean isLexSmaller(List<Integer> a, List<Integer> b) {
-        List<Integer> sortedA = new ArrayList<>(a);
-        List<Integer> sortedB = new ArrayList<>(b);
-        Collections.sort(sortedA);
-        Collections.sort(sortedB);
-        
-        for (int i = 0; i < Math.min(sortedA.size(), sortedB.size()); i++) {
-            if (sortedA.get(i) < sortedB.get(i)) return true;
-            if (sortedA.get(i) > sortedB.get(i)) return false;
-        }
-        return sortedA.size() < sortedB.size();
-    }
-    
-    static class Interval {
-        int start, end, weight, originalIndex;
-        Interval(int s, int e, int w, int idx) {
-            start = s; end = e; weight = w; originalIndex = idx;
-        }
-    }
-    
-    static class State {
-        long weight;
-        List<Integer> indices;
-        State(long w, List<Integer> idx) {
-            weight = w; indices = new ArrayList<>(idx);
-        }
-        State(State other) {
-            weight = other.weight; indices = new ArrayList<>(other.indices);
-        }
+        return res;
     }
 }
-// @lc code=end
+# @lc code=end
