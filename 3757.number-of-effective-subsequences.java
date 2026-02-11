@@ -9,58 +9,66 @@ class Solution {
     public int countEffective(int[] nums) {
         int n = nums.length;
         if (n == 0) return 0;
-        int S = 0;
-        for (int x : nums) S |= x;
-        int k = 0;
-        for (int b = 0; b < 32; b++) {
-            if ((S & (1 << b)) != 0) k++;
+        int full_or = 0;
+        for (int x : nums) {
+            full_or |= x;
         }
-        int[] bits = new int[k];
-        int idx = 0;
-        for (int b = 0; b < 32; b++) {
-            if ((S & (1 << b)) != 0) {
-                bits[idx++] = b;
+        int[] active = new int[20];
+        int m = 0;
+        for (int b = 0; b < 20; b++) {
+            if ((full_or & (1 << b)) != 0) {
+                active[m++] = b;
             }
         }
-        int MS = 1 << k;
-        long[] fr = new long[MS];
-        for (int num : nums) {
-            int mask = 0;
-            for (int j = 0; j < k; j++) {
-                if ((num & (1 << bits[j])) != 0) {
-                    mask |= (1 << j);
-                }
-            }
-            fr[mask]++;
+        if (m == 0) return 0;
+        final int BITS = 20;
+        final int MAXM = 1 << BITS;
+        long[] freq = new long[MAXM];
+        for (int x : nums) {
+            if (x < MAXM) freq[x]++;
         }
-        long[] dp = new long[MS];
-        for (int i = 0; i < MS; i++) dp[i] = fr[i];
-        for (int b = 0; b < k; b++) {
-            for (int mask = 0; mask < MS; mask++) {
-                if ((mask & (1 << b)) == 0) {
-                    dp[mask | (1 << b)] += dp[mask];
+        long[] dp = new long[MAXM];
+        for (int i = 0; i < MAXM; i++) {
+            dp[i] = freq[i];
+        }
+        for (int b = 0; b < BITS; b++) {
+            for (int mask = 0; mask < MAXM; mask++) {
+                if ((mask & (1 << b)) != 0) {
+                    dp[mask] += dp[mask ^ (1 << b)];
                 }
             }
         }
-        final int MOD = 1000000007;
-        long[] pow2 = new long[n + 1];
-        pow2[0] = 1;
-        for (int i = 1; i <= n; i++) {
-            pow2[i] = pow2[i - 1] * 2L % MOD;
-        }
+        int ALL = (1 << BITS) - 1;
+        final long MOD = 1000000007L;
         long ans = 0;
-        int full = (1 << k) - 1;
-        for (int m = 1; m < MS; m++) {
-            int pop = Integer.bitCount(m);
-            long disj = dp[full ^ m];
-            long ways = pow2[(int) disj];
-            if ((pop & 1) == 1) {
-                ans = (ans + ways) % MOD;
-            } else {
-                ans = (ans + MOD - ways) % MOD;
+        for (int s = 1; s < (1 << m); s++) {
+            int this_mask = 0;
+            for (int j = 0; j < m; j++) {
+                if ((s & (1 << j)) != 0) {
+                    this_mask |= (1 << active[j]);
+                }
             }
+            int pop = Integer.bitCount(s);
+            int comp = ALL ^ this_mask;
+            long avoid = dp[comp];
+            int forced = n - (int) avoid;
+            long ways = mod_pow(2L, (long) (n - forced), MOD);
+            long sign = (pop % 2 == 1) ? 1L : (MOD - 1L);
+            ans = (ans + sign * ways % MOD) % MOD;
         }
         return (int) ans;
+    }
+    private long mod_pow(long base, long exp, long mod) {
+        long res = 1;
+        base %= mod;
+        while (exp > 0) {
+            if ((exp & 1) == 1) {
+                res = res * base % mod;
+            }
+            base = base * base % mod;
+            exp >>= 1;
+        }
+        return res;
     }
 }
 # @lc code=end
