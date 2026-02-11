@@ -6,54 +6,47 @@
 
 # @lc code=start
 class Solution {
-    private boolean canBalance(int[] nums, int L) {
-        int n = nums.length;
-        if (L == 0) return true;
-        if (L > n) return false;
-        final int MAX = 100000;
-        int[] evenFreq = new int[MAX + 1];
-        int[] oddFreq = new int[MAX + 1];
-        int evenDistinct = 0;
-        int oddDistinct = 0;
-        // Initialize first window
-        for (int i = 0; i < L; i++) {
-            int num = nums[i];
-            if ((num & 1) == 0) {  // even
-                if (evenFreq[num]++ == 0) evenDistinct++;
-            } else {  // odd
-                if (oddFreq[num]++ == 0) oddDistinct++;
-            }
-        }
-        if (evenDistinct == oddDistinct) return true;
-        // Slide the window
-        for (int i = L; i < n; i++) {
-            // Remove nums[i - L]
-            int rem = nums[i - L];
-            if ((rem & 1) == 0) {
-                if (--evenFreq[rem] == 0) evenDistinct--;
-            } else {
-                if (--oddFreq[rem] == 0) oddDistinct--;
-            }
-            // Add nums[i]
-            int addNum = nums[i];
-            if ((addNum & 1) == 0) {
-                if (evenFreq[addNum]++ == 0) evenDistinct++;
-            } else {
-                if (oddFreq[addNum]++ == 0) oddDistinct++;
-            }
-            if (evenDistinct == oddDistinct) return true;
-        }
-        return false;
-    }
-
     public int longestBalanced(int[] nums) {
         int n = nums.length;
-        for (int L = n; L >= 0; L--) {
-            if (canBalance(nums, L)) {
-                return L;
+        int left = 0, right = n;
+        while (left < right) {
+            int mid = left + (right - left + 1) / 2;
+            if (check(nums, mid)) {
+                left = mid;
+            } else {
+                right = mid - 1;
             }
         }
-        return 0;
+        return left;
+    }
+    
+    private boolean check(int[] nums, int len) {
+        if (len == 0) return true;
+        int n = nums.length;
+        int[] freq = new int[100001];
+        int ec = 0, oc = 0;
+        for (int i = 0; i < len; i++) {
+            int x = nums[i];
+            if (freq[x]++ == 0) {
+                if ((x & 1) == 0) ec++;
+                else oc++;
+            }
+        }
+        if (ec == oc) return true;
+        for (int i = len; i < n; i++) {
+            int x = nums[i - len];
+            if (--freq[x] == 0) {
+                if ((x & 1) == 0) ec--;
+                else oc--;
+            }
+            x = nums[i];
+            if (freq[x]++ == 0) {
+                if ((x & 1) == 0) ec++;
+                else oc++;
+            }
+            if (ec == oc) return true;
+        }
+        return false;
     }
 }
 # @lc code=end
