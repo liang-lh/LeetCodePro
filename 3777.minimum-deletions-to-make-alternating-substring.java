@@ -1,19 +1,88 @@
-You are solving a LeetCode coding problem. Follow this structured approach:
+#
+# @lc app=leetcode id=3777 lang=java
+#
+# [3777] Minimum Deletions to Make Alternating Substring
+#
 
-Step 1 - Extract Problem Specifics: State the exact input format, output format, and constraints from the problem. Identify what makes this particular problem challenging.
-
-Step 2 - Design Your Approach: Select ONE algorithmic approach. Explain the key insight that solves this specific problem and why it guarantees correctness.
-
-Step 3 - Identify Edge Cases: List specific edge cases based on the given constraints. For each edge case, explain how your approach handles it correctly.
-
-Step 4 - Outline Your Algorithm: Describe your solution step-by-step. For each major component, explain what it does and why it works.
-
-Step 5 - Trace Through Example: Take a concrete example from the problem. Manually trace your algorithm step-by-step, writing down actual intermediate values at each point. Verify the final output matches the expected result. If it doesn't match, identify exactly where the logic fails.
-
-Step 6 - Analyze Complexity: Determine time and space complexity with brief justification.
-
-Step 7 - Implement Complete Solution: Write your full, runnable solution code in the specified language. Match the provided template format exactly.
-
-OUTPUT: After completing your analysis, output a JSON object with exactly two fields:
-- "reasoning": Your complete step-by-step analysis from steps 1-6 with problem-specific details
-- "result": Your complete working code from step 7 in the specified programming language
+# @lc code=start
+class Solution {
+    static class FenwickTree {
+        private int[] tree;
+        private int n;
+        
+        public FenwickTree(int nn) {
+            n = nn;
+            tree = new int[nn + 1];
+        }
+        
+        public void update(int idx, int delta) {
+            while (idx <= n) {
+                tree[idx] += delta;
+                idx += idx & -idx;
+            }
+        }
+        
+        public int query(int idx) {
+            int sum = 0;
+            while (idx > 0) {
+                sum += tree[idx];
+                idx -= idx & -idx;
+            }
+            return sum;
+        }
+        
+        public int query(int left, int right) {
+            if (left > right) return 0;
+            return query(right) - query(left - 1);
+        }
+    }
+    
+    public int[] minDeletions(String s, int[][] queries) {
+        int n = s.length();
+        char[] sc = s.toCharArray();
+        FenwickTree ft = new FenwickTree(n - 1);
+        for (int i = 0; i < n - 1; i++) {
+            int val = (sc[i] == sc[i + 1] ? 1 : 0);
+            ft.update(i + 1, val);
+        }
+        java.util.List<Integer> answer = new java.util.ArrayList<>();
+        for (int[] query : queries) {
+            if (query.length == 2) { // flip
+                int j = query[1];
+                int old_eq_prev = 0;
+                boolean has_prev = j > 0;
+                if (has_prev) {
+                    old_eq_prev = (sc[j - 1] == sc[j] ? 1 : 0);
+                }
+                int old_eq_next = 0;
+                boolean has_next = j < n - 1;
+                if (has_next) {
+                    old_eq_next = (sc[j] == sc[j + 1] ? 1 : 0);
+                }
+                // flip
+                sc[j] = (sc[j] == 'A' ? 'B' : 'A');
+                // update prev pair eq[j-1]
+                if (has_prev) {
+                    int new_eq_prev = (sc[j - 1] == sc[j] ? 1 : 0);
+                    ft.update(j, new_eq_prev - old_eq_prev);
+                }
+                // update next pair eq[j]
+                if (has_next) {
+                    int new_eq_next = (sc[j] == sc[j + 1] ? 1 : 0);
+                    ft.update(j + 1, new_eq_next - old_eq_next);
+                }
+            } else { // query [2, l, r]
+                int l = query[1];
+                int r = query[2];
+                int dels = (l == r) ? 0 : ft.query(l + 1, r);
+                answer.add(dels);
+            }
+        }
+        int[] res = new int[answer.size()];
+        for (int i = 0; i < answer.size(); i++) {
+            res[i] = answer.get(i);
+        }
+        return res;
+    }
+}
+# @lc code=end
