@@ -1,1 +1,1 @@
-[The complete, functioning code implementation with all required components]
+S
