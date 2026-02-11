@@ -6,97 +6,85 @@
 
 # @lc code=start
 class Solution {
-  public int[] pathExistenceQueries(int n, int[] nums, int maxDiff, int[][] queries) {
-    int m = queries.length;
-    int[] answer = new int[m];
-
-    // Compute sorted order by nums
-    int[] order = new int[n];
-    for (int i = 0; i < n; ++i) order[i] = i;
-    java.util.Arrays.sort(order, (int x, int y) -> Integer.compare(nums[x], nums[y]));
-
-    int[] pos = new int[n];
-    for (int i = 0; i < n; ++i) {
-      pos[order[i]] = i;
-    }
-
-    // Compute R[i]: farthest right directly reachable
-    int[] R = new int[n];
-    int jj = 0;
-    for (int i = 0; i < n; ++i) {
-      while (jj < n && (long) nums[order[jj]] <= (long) nums[order[i]] + maxDiff) {
-        ++jj;
-      }
-      R[i] = jj - 1;
-    }
-
-    // Binary lifting for farthest reach with 2^k jumps
-    final int LOG = 18;
-    int[][] far = new int[LOG][n];
-    for (int i = 0; i < n; ++i) {
-      far[0][i] = R[i];
-    }
-    for (int k = 1; k < LOG; ++k) {
-      for (int i = 0; i < n; ++i) {
-        int mid = far[k - 1][i];
-        far[k][i] = (mid < n ? far[k - 1][mid] : n - 1);
-      }
-    }
-
-    // Compute components
-    int[] comp = new int[n];
-    if (n > 0) {
-      comp[order[0]] = 0;
-      int cid = 0;
-      for (int i = 1; i < n; ++i) {
-        if ((long) nums[order[i]] - nums[order[i - 1]] > maxDiff) {
-          ++cid;
+    public int[] pathExistenceQueries(int n, int[] nums, int maxDiff, int[][] queries) {
+        if (n == 0) return new int[0];
+        Integer[] indices = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            indices[i] = i;
         }
-        comp[order[i]] = cid;
-      }
-    }
-
-    // Process each query
-    for (int qi = 0; qi < m; ++qi) {
-      int u = queries[qi][0];
-      int v = queries[qi][1];
-      if (u == v) {
-        answer[qi] = 0;
-        continue;
-      }
-      if (comp[u] != comp[v]) {
-        answer[qi] = -1;
-        continue;
-      }
-      int pa = pos[u];
-      int pb = pos[v];
-      if (pa > pb) {
-        int tmp = pa;
-        pa = pb;
-        pb = tmp;
-      }
-      // Binary search minimal d
-      int left = 1;
-      int right = pb - pa;
-      int minD = right;
-      while (left <= right) {
-        int md = left + (right - left) / 2;
-        int curr = pa;
-        for (int k = LOG - 1; k >= 0; --k) {
-          if ((md & (1 << k)) != 0) {
-            curr = far[k][curr];
-          }
+        java.util.Arrays.sort(indices, (a, b) -> Integer.compare(nums[a], nums[b]));
+        int[] position = new int[n];
+        for (int k = 0; k < n; k++) {
+            position[indices[k]] = k;
         }
-        if (curr >= pb) {
-          minD = md;
-          right = md - 1;
-        } else {
-          left = md + 1;
+        int[] comp = new int[n];
+        comp[0] = 0;
+        int cur_comp = 0;
+        for (int k = 0; k < n - 1; k++) {
+            if (nums[indices[k + 1]] - nums[indices[k]] > maxDiff) {
+                cur_comp++;
+            }
+            comp[k + 1] = cur_comp;
         }
-      }
-      answer[qi] = minD;
+        int[] rght = new int[n];
+        int jj = 0;
+        for (int i = 0; i < n; i++) {
+            while (jj < n && nums[indices[jj]] <= nums[indices[i]] + maxDiff) {
+                jj++;
+            }
+            rght[i] = jj - 1;
+        }
+        final int LOG = 18;
+        int[][] far = new int[LOG][n];
+        for (int i = 0; i < n; i++) {
+            far[0][i] = rght[i];
+        }
+        for (int k = 1; k < LOG; k++) {
+            for (int i = 0; i < n; i++) {
+                int mid = far[k - 1][i];
+                far[k][i] = far[k - 1][mid];
+            }
+        }
+        int[] answer = new int[queries.length];
+        for (int qi = 0; qi < queries.length; qi++) {
+            int u = queries[qi][0];
+            int v = queries[qi][1];
+            if (u == v) {
+                answer[qi] = 0;
+                continue;
+            }
+            int pa = position[u];
+            int pb = position[v];
+            if (pa > pb) {
+                int tmp = pa;
+                pa = pb;
+                pb = tmp;
+            }
+            if (comp[pa] != comp[pb]) {
+                answer[qi] = -1;
+                continue;
+            }
+            int l = 1;
+            int h = pb - pa;
+            int res_dist = h;
+            while (l <= h) {
+                int md = l + (h - l) / 2;
+                int cur = pa;
+                for (int bk = 0; bk < LOG; bk++) {
+                    if ((md & (1 << bk)) != 0) {
+                        cur = far[bk][cur];
+                    }
+                }
+                if (cur >= pb) {
+                    res_dist = md;
+                    h = md - 1;
+                } else {
+                    l = md + 1;
+                }
+            }
+            answer[qi] = res_dist;
+        }
+        return answer;
     }
-    return answer;
-  }
 }
 # @lc code=end
