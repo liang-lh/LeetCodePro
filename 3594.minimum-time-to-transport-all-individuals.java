@@ -3,129 +3,94 @@
 #
 # [3594] Minimum Time to Transport All Individuals
 #
+
 # @lc code=start
 class Solution {
+    private static class State implements Comparable<State> {
+        double time;
+        int mask, stage, boat;
+        State(double time, int mask, int stage, int boat) {
+            this.time = time;
+            this.mask = mask;
+            this.stage = stage;
+            this.boat = boat;
+        }
+        @Override
+        public int compareTo(State other) {
+            return Double.compare(this.time, other.time);
+        }
+    }
+
     public double minTime(int n, int k, int m, int[] time, double[] mul) {
-        // Special case: if k >= n, send everyone at once
-        if (k >= n) {
-            int maxTime = 0;
-            for (int t : time) {
-                maxTime = Math.max(maxTime, t);
+        final double INF = 1e100;
+        int maxmask = 1 << n;
+        double[] max_time = new double[maxmask];
+        for (int mk = 0; mk < maxmask; ++mk) {
+            double mx = 0.0;
+            for (int i = 0; i < n; ++i) {
+                if ((mk & (1 << i)) != 0) {
+                    mx = Math.max(mx, (double)time[i]);
+                }
             }
-            return maxTime * mul[0];
+            max_time[mk] = mx;
         }
-        
-        // Special case: if k = 1 and n > 1, impossible
-        if (k == 1 && n > 1) {
-            return -1.0;
+        double[][][] dist = new double[maxmask][m][2];
+        for (int i = 0; i < maxmask; ++i) {
+            for (int j = 0; j < m; ++j) {
+                dist[i][j][0] = INF;
+                dist[i][j][1] = INF;
+            }
         }
-        
-        // BFS with priority queue (Dijkstra-like)
-        java.util.Map<String, Double> minTimeMap = new java.util.HashMap<>();
-        java.util.PriorityQueue<State> pq = new java.util.PriorityQueue<>((a, b) -> Double.compare(a.totalTime, b.totalTime));
-        
-        // Initial state: no one at destination, stage 0, time 0
-        pq.offer(new State(0, 0, 0.0));
-        minTimeMap.put(getKey(0, 0), 0.0);
-        
-        int allMask = (1 << n) - 1;
-        
+        java.util.PriorityQueue<State> pq = new java.util.PriorityQueue<>();
+        int full = (1 << n) - 1;
+        dist[full][0][0] = 0.0;
+        pq.offer(new State(0.0, full, 0, 0));
         while (!pq.isEmpty()) {
             State curr = pq.poll();
-            
-            // If all people at destination, return time
-            if (curr.atDest == allMask) {
-                return curr.totalTime;
-            }
-            
-            String key = getKey(curr.atDest, curr.stage);
-            if (minTimeMap.get(key) < curr.totalTime) {
+            if (curr.time > dist[curr.mask][curr.stage][curr.boat]) {
                 continue;
             }
-            
-            // Get people at base camp
-            int atBase = allMask ^ curr.atDest;
-            java.util.List<Integer> baseList = new java.util.ArrayList<>();
-            for (int i = 0; i < n; i++) {
-                if ((atBase & (1 << i)) != 0) {
-                    baseList.add(i);
-                }
-            }
-            
-            // Try all subsets of size <= k from base camp
-            for (int mask = 1; mask <= (1 << baseList.size()) - 1; mask++) {
-                if (Integer.bitCount(mask) > k) continue;
-                
-                java.util.List<Integer> group = new java.util.ArrayList<>();
-                int groupMask = 0;
-                for (int i = 0; i < baseList.size(); i++) {
-                    if ((mask & (1 << i)) != 0) {
-                        group.add(baseList.get(i));
-                        groupMask |= (1 << baseList.get(i));
+            int mask = curr.mask;
+            int stage = curr.stage;
+            int boat = curr.boat;
+            double ctime = curr.time;
+            if (boat == 0) {
+                for (int sub = mask; sub > 0; sub = (sub - 1) & mask) {
+                    if (Integer.bitCount(sub) > k) {
+                        continue;
+                    }
+                    double maxt = max_time[sub];
+                    double cost = maxt * mul[stage];
+                    int adv = (int) Math.floor(cost) % m;
+                    int nstage = (stage + adv) % m;
+                    int nmask = mask ^ sub;
+                    double ntime = ctime + cost;
+                    if (ntime < dist[nmask][nstage][1]) {
+                        dist[nmask][nstage][1] = ntime;
+                        pq.offer(new State(ntime, nmask, nstage, 1));
                     }
                 }
-                
-                // Calculate crossing time
-                int maxTime = 0;
-                for (int person : group) {
-                    maxTime = Math.max(maxTime, time[person]);
-                }
-                double crossTime = maxTime * mul[curr.stage];
-                int newStage = (curr.stage + (int)Math.floor(crossTime)) % m;
-                
-                int newAtDest = curr.atDest | groupMask;
-                
-                // Check if we need someone to return
-                if (newAtDest == allMask) {
-                    // All people at destination
-                    double newTotalTime = curr.totalTime + crossTime;
-                    String newKey = getKey(newAtDest, newStage);
-                    if (!minTimeMap.containsKey(newKey) || minTimeMap.get(newKey) > newTotalTime) {
-                        minTimeMap.put(newKey, newTotalTime);
-                        pq.offer(new State(newAtDest, newStage, newTotalTime));
-                    }
-                } else {
-                    // Someone must return
-                    java.util.List<Integer> destList = new java.util.ArrayList<>();
-                    for (int i = 0; i < n; i++) {
-                        if ((newAtDest & (1 << i)) != 0) {
-                            destList.add(i);
-                        }
-                    }
-                    
-                    for (int returnPerson : destList) {
-                        double returnTime = time[returnPerson] * mul[newStage];
-                        int finalStage = (newStage + (int)Math.floor(returnTime)) % m;
-                        int finalAtDest = newAtDest ^ (1 << returnPerson);
-                        
-                        double newTotalTime = curr.totalTime + crossTime + returnTime;
-                        String newKey = getKey(finalAtDest, finalStage);
-                        if (!minTimeMap.containsKey(newKey) || minTimeMap.get(newKey) > newTotalTime) {
-                            minTimeMap.put(newKey, newTotalTime);
-                            pq.offer(new State(finalAtDest, finalStage, newTotalTime));
+            } else {
+                for (int r = 0; r < n; ++r) {
+                    if ((mask & (1 << r)) == 0) {
+                        double cost = (double) time[r] * mul[stage];
+                        int adv = (int) Math.floor(cost) % m;
+                        int nstage = (stage + adv) % m;
+                        int nmask = mask | (1 << r);
+                        double ntime = ctime + cost;
+                        if (ntime < dist[nmask][nstage][0]) {
+                            dist[nmask][nstage][0] = ntime;
+                            pq.offer(new State(ntime, nmask, nstage, 0));
                         }
                     }
                 }
             }
         }
-        
-        return -1.0;
-    }
-    
-    private String getKey(int atDest, int stage) {
-        return atDest + "," + stage;
-    }
-    
-    static class State {
-        int atDest;  // bitmask of people at destination
-        int stage;   // current stage
-        double totalTime;
-        
-        State(int atDest, int stage, double totalTime) {
-            this.atDest = atDest;
-            this.stage = stage;
-            this.totalTime = totalTime;
+        double ans = INF;
+        for (int j = 0; j < m; ++j) {
+            ans = Math.min(ans, dist[0][j][1]);
         }
+        return ans < INF / 2 ? ans : -1.0;
     }
 }
 # @lc code=end
