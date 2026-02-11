@@ -1,32 +1,57 @@
-Step 1: Analyze the specific problem at hand. Identify what needs to be solved, what inputs are given, what output is required, and what constraints apply.
+#
+# @lc app=leetcode id=3563 lang=java
+#
+# [3563] Lexicographically Smallest String After Adjacent Removals
+#
 
-Step 2: Determine your solution approach:
-   - What algorithm, method, or strategy will solve this problem?
-   - What data structures or tools are appropriate?
-   - What are the critical edge cases to handle?
-
-Step 3: Plan your implementation:
-   - Break the problem into logical components or stages
-   - Outline the sequence of operations needed
-   - Identify calculations, transformations, or logic required
-
-Step 4: Develop your reasoning:
-   - Explain your thought process for THIS specific problem
-   - Walk through how your approach works
-   - Justify why this solution is correct and handles all cases
-
-Step 5: Implement your solution directly:
-   - Write the actual working code (for programming tasks)
-   - Calculate and provide the final answer (for computational tasks)
-   - CRITICAL: Output the concrete solution itself, not instructions about how to solve it
-   - Your result field must contain actual implementation, not meta-commentary
-
-Step 6: Verify correctness:
-   - Test your solution against provided examples
-   - Check that edge cases are properly handled
-   - Confirm your logic produces correct results
-
-Step 7: Quick format validation:
-   - Confirm your output uses the required structure from the example
-   - Verify field names match exactly
-   - Ensure reasoning is in reasoning field, implementation is in result field
+# @lc code=start
+class Solution {
+    public String lexicographicallySmallestString(String s) {
+        int n = s.length();
+        boolean[][] can = new boolean[n+1][n+1];
+        for (int i = 0; i <= n; i++) {
+            can[i][i] = true;
+        }
+        for (int len = 1; len <= n; len++) {
+            for (int i = 0; i <= n - len; i++) {
+                int j = i + len;
+                boolean possible = false;
+                for (int k = i + 1; k < j; k++) {
+                    if (can[i][k] && can[k][j]) {
+                        possible = true;
+                        break;
+                    }
+                }
+                if (len >= 2) {
+                    char left = s.charAt(i);
+                    char right = s.charAt(j - 1);
+                    int dx = Math.abs((left - 'a') - (right - 'a'));
+                    boolean consec = (dx == 1) || (left == 'a' && right == 'z') || (left == 'z' && right == 'a');
+                    if (consec && can[i + 1][j - 1]) {
+                        possible = true;
+                    }
+                }
+                can[i][j] = possible;
+            }
+        }
+        String[] best = new String[n + 1];
+        best[n] = "";
+        for (int i = n - 1; i >= 0; i--) {
+            String minStr = s.substring(i);
+            if (can[i][n]) {
+                minStr = "";
+            }
+            for (int k = i; k < n; k++) {
+                if (can[i][k]) {
+                    String cand = s.charAt(k) + best[k + 1];
+                    if (cand.compareTo(minStr) < 0) {
+                        minStr = cand;
+                    }
+                }
+            }
+            best[i] = minStr;
+        }
+        return best[0];
+    }
+}
+# @lc code=end
