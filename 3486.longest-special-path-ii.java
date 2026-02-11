@@ -4,128 +4,80 @@
 # [3486] Longest Special Path II
 #
 
-# @lc code=start
 import java.util.*;
+
+# @lc code=start
 class Solution {
-    private int[] nums;
-    private List<List<int[]>> children;
-    private int[] res;
+    static class Holder {
+        long maxLen = 0;
+        int minNodes = Integer.MAX_VALUE;
+        int[] freq = new int[50001];
+        int distinctCnt = 0;
+        int left = 0;
+        List<Integer> pathVals = new ArrayList<>();
+        List<Long> prefixLens = new ArrayList<>();
+    }
+
+    interface TriConsumer {
+        void accept(int u, int p, long cumW);
+    }
 
     public int[] longestSpecialPath(int[][] edges, int[] nums) {
         int n = nums.length;
-        List<List<int[]>> adj = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) adj.add(new ArrayList<>()) ;
+        @SuppressWarnings("unchecked")
+        List<int[]>[] adj = new List[n];
+        for (int i = 0; i < n; i++) {
+            adj[i] = new ArrayList<>();
+        }
         for (int[] e : edges) {
             int u = e[0], v = e[1], w = e[2];
-            adj.get(u).add(new int[]{v, w});
-            adj.get(v).add(new int[]{u, w});
+            adj[u].add(new int[]{v, w});
+            adj[v].add(new int[]{u, w});
         }
-        children = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) children.add(new ArrayList<>());
-        boolean[] vis = new boolean[n];
-        Queue<Integer> q = new LinkedList<>();
-        q.offer(0);
-        vis[0] = true;
-        while (!q.isEmpty()) {
-            int u = q.poll();
-            for (int[] pr : adj.get(u)) {
-                int v = pr[0];
-                if (!vis[v]) {
-                    vis[v] = true;
-                    children.get(u).add(pr);
-                    q.offer(v);
+        Holder holder = new Holder();
+        TriConsumer dfs = new TriConsumer() {
+            @Override
+            public void accept(int u, int p, long cumW) {
+                int val = nums[u];
+                holder.pathVals.add(val);
+                holder.prefixLens.add(cumW);
+                int pathSz = holder.pathVals.size();
+                holder.freq[val]++;
+                if (holder.freq[val] == 1) holder.distinctCnt++;
+                while (holder.left < pathSz && holder.distinctCnt < (pathSz - holder.left) - 1) {
+                    int lval = holder.pathVals.get(holder.left);
+                    holder.freq[lval]--;
+                    if (holder.freq[lval] == 0) holder.distinctCnt--;
+                    holder.left++;
                 }
-            }
-        }
-        this.nums = nums;
-        res = new int[]{0, Integer.MAX_VALUE / 2};
-        dfs(0, -1, -1, -1);
-        if (res[1] == Integer.MAX_VALUE / 2) res[1] = 1;
-        return res;
-    }
-
-    private static class State {
-        int len = -1;
-        int nodes = Integer.MAX_VALUE / 2;
-        boolean valid() { return len != -1; }
-        void update(int l, int nd) {
-            if (l > len) {
-                len = l;
-                nodes = nd;
-            } else if (l == len) {
-                nodes = Math.min(nodes, nd);
-            }
-        }
-    }
-
-    private void updateGlobal(int l, int nd) {
-        if (l > res[0]) {
-            res[0] = l;
-            res[1] = nd;
-        } else if (l == res[0]) {
-            res[1] = Math.min(res[1], nd);
-        }
-    }
-
-    private State[][] dfs(int u, int p, int local_par, int tracked) {
-        State[][] st = new State[5][3];
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 3; j++) {
-                st[i][j] = new State();
-            }
-        }
-        int vu = nums[u];
-        int cnt0_local = (local_par != -1 && vu == local_par) ? 1 : 0;
-        int cnt0_tracked = (tracked != -1 && vu == tracked) ? 1 : 0;
-        int local_k = cnt0_local;
-        st[local_k][cnt0_tracked].update(0, 1);
-        updateGlobal(0, 1);
-        for (int[] pr : children.get(u)) {
-            int v = pr[0];
-            int w = pr[1];
-            State[][] ch = dfs(v, u, vu, local_par);
-            for (int lk = 0; lk < 5; lk++) {
-                for (int tk = 0; tk < 3; tk++) {
-                    if (!ch[lk][tk].valid()) continue;
-                    if (!isCompatible(lk)) continue;
-                    int newl = ch[lk][tk].len + w;
-                    int newn = ch[lk][tk].nodes + 1;
-                    updateGlobal(newl, newn);
-                    int cnt_par_child = tk;
-                    int new_cnt_par = cnt0_local + cnt_par_child;
-                    if (new_cnt_par > 2) continue;
-                    int cnt_ch_local = getCntLocal(lk);
-                    boolean intro = (cnt_ch_local == 1);
-                    boolean ch_dupe = (lk == 3);
-                    boolean has_dupe = intro || ch_dupe;
-                    int newk;
-                    if (!has_dupe) {
-                        newk = new_cnt_par;
-                    } else {
-                        if (intro) {
-                            newk = (vu == local_par ? 2 : 3);
-                        } else {
-                            newk = 3;
+                long plen = holder.prefixLens.get(pathSz - 1) - holder.prefixLens.get(holder.left);
+                int wsz = pathSz - holder.left;
+                if (plen > holder.maxLen || (plen == holder.maxLen && wsz < holder.minNodes)) {
+                    holder.maxLen = plen;
+                    holder.minNodes = wsz;
+                }
+                for (int[] nei : adj[u]) {
+                    int v = nei[0];
+                    if (v != p) {
+                        int oldLeft = holder.left;
+                        accept(v, u, cumW + nei[1]);
+                        while (holder.left > oldLeft) {
+                            int cand = holder.left - 1;
+                            int cval = holder.pathVals.get(cand);
+                            holder.freq[cval]++;
+                            if (holder.freq[cval] == 1) holder.distinctCnt++;
+                            holder.left = cand;
                         }
-                        if (new_cnt_par == 1) newk = 4;
                     }
-                    int new_cnt_tracked = cnt0_tracked + tk;
-                    if (new_cnt_tracked > 2) continue;
-                    st[newk][new_cnt_tracked].update(newl, newn);
                 }
+                holder.freq[val]--;
+                if (holder.freq[val] == 0) holder.distinctCnt--;
+                holder.pathVals.remove(holder.pathVals.size() - 1);
+                holder.prefixLens.remove(holder.prefixLens.size() - 1);
             }
-        }
-        return st;
-    }
-
-    private boolean isCompatible(int lk) {
-        return lk == 0 || lk == 1 || lk == 3;
-    }
-
-    private int getCntLocal(int lk) {
-        if (lk == 2) return 2;
-        if (lk == 0 || lk == 3) return 0;
-        return 1;
+        };
+        dfs.accept(0, -1, 0L);
+        return new int[]{(int) holder.maxLen, holder.minNodes};
     }
 }
 # @lc code=end
