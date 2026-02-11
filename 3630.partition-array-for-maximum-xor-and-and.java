@@ -6,61 +6,97 @@
 
 # @lc code=start
 class Solution {
-    public long maximizeXorAndXor(int[] nums) {
-        int n = nums.length;
-        int N = 1 << n;
-        int full = N - 1;
-        long[] sub_xor = new long[N];
-        long[] sub_and = new long[N];
-        for (int i = 0; i < N; i++) {
-            sub_and[i] = -1L;
+  public long maximizeXorAndXor(int[] nums) {
+    int n = nums.length;
+    int mid = (n + 1) / 2;
+    int lenL = mid;
+    int lenR = n - mid;
+    int numL = 1;
+    for (int i = 0; i < lenL; i++) numL *= 3;
+    int numR = 1;
+    for (int i = 0; i < lenR; i++) numR *= 3;
+    int[] xorAL = new int[numL];
+    int[] xorCL = new int[numL];
+    int[] andBL = new int[numL];
+    boolean[] hasBL = new boolean[numL];
+    for (int state = 0; state < numL; state++) {
+      int temp = state;
+      int xa = 0, xc = 0, ab = ~0;
+      boolean hb = false;
+      for (int k = 0; k < lenL; k++) {
+        int ass = temp % 3;
+        temp /= 3;
+        int val = nums[k];
+        if (ass == 0) {
+          xa ^= val;
+        } else if (ass == 2) {
+          xc ^= val;
+        } else {
+          ab &= val;
+          hb = true;
         }
-        sub_and[0] = 0L;
-        for (int i = 0; i < n; i++) {
-            long val = nums[i];
-            for (int sub = 0; sub < N; sub++) {
-                if ((sub & (1 << i)) != 0) {
-                    sub_xor[sub] ^= val;
-                    sub_and[sub] &= val;
-                }
-            }
-        }
-        long ans = 0;
-        long LOW32 = 0xFFFFFFFFL;
-        for (int maskB = 0; maskB < N; maskB++) {
-            long andB = sub_and[maskB];
-            int maskS = full ^ maskB;
-            long xorS = sub_xor[maskS];
-            // Build basis
-            long[] basis = new long[32];
-            for (int j = 0; j < n; j++) {
-                if ((maskS & (1 << j)) == 0) continue;
-                long val = nums[j];
-                for (int p = 31; p >= 0; p--) {
-                    if ((val & (1L << p)) == 0) continue;
-                    if (basis[p] != 0) {
-                        val ^= basis[p];
-                    } else {
-                        basis[p] = val;
-                        break;
-                    }
-                }
-            }
-            // Greedy max proj = max (x & m)
-            long m = (~xorS) & LOW32;
-            long proj = 0;
-            for (int p = 31; p >= 0; p--) {
-                if ((m & (1L << p)) == 0) continue;
-                if (basis[p] == 0) continue;
-                if ((proj & (1L << p)) == 0) {
-                    proj ^= basis[p];
-                }
-            }
-            proj &= m;
-            long curr = andB + xorS + 2 * proj;
-            if (curr > ans) ans = curr;
-        }
-        return ans;
+      }
+      xorAL[state] = xa;
+      xorCL[state] = xc;
+      andBL[state] = ab;
+      hasBL[state] = hb;
     }
+    int[] xorAR = new int[numR];
+    int[] xorCR = new int[numR];
+    int[] andBR = new int[numR];
+    boolean[] hasBR = new boolean[numR];
+    for (int state = 0; state < numR; state++) {
+      int temp = state;
+      int xa = 0, xc = 0, ab = ~0;
+      boolean hb = false;
+      for (int k = 0; k < lenR; k++) {
+        int ass = temp % 3;
+        temp /= 3;
+        int val = nums[mid + k];
+        if (ass == 0) {
+          xa ^= val;
+        } else if (ass == 2) {
+          xc ^= val;
+        } else {
+          ab &= val;
+          hb = true;
+        }
+      }
+      xorAR[state] = xa;
+      xorCR[state] = xc;
+      andBR[state] = ab;
+      hasBR[state] = hb;
+    }
+    long ans = 0;
+    for (int i = 0; i < numL; i++) {
+      int xal = xorAL[i];
+      int xcl = xorCL[i];
+      int abl = andBL[i];
+      boolean hbl = hasBL[i];
+      for (int j = 0; j < numR; j++) {
+        int xar = xorAR[j];
+        int xcr = xorCR[j];
+        int abr = andBR[j];
+        boolean hbr = hasBR[j];
+        long abv;
+        if (hbl && hbr) {
+          abv = (long) abl & abr;
+        } else if (hbl) {
+          abv = abl;
+        } else if (hbr) {
+          abv = abr;
+        } else {
+          abv = 0;
+        }
+        long xat = (long) (xal ^ xar);
+        long xct = (long) (xcl ^ xcr);
+        long val = xat + xct + abv;
+        if (val > ans) {
+          ans = val;
+        }
+      }
+    }
+    return ans;
+  }
 }
 # @lc code=end
