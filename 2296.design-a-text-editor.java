@@ -3,47 +3,58 @@
 #
 # [2296] Design a Text Editor
 #
+
 # @lc code=start
 class TextEditor {
+
     private StringBuilder left;
     private StringBuilder right;
-    
+
     public TextEditor() {
         left = new StringBuilder();
         right = new StringBuilder();
     }
-    
+
+    private String getLeft10() {
+        int sz = left.length();
+        if (sz == 0) {
+            return "";
+        }
+        return sz <= 10 ? left.toString() : left.substring(sz - 10);
+    }
+
     public void addText(String text) {
         left.append(text);
     }
-    
+
     public int deleteText(int k) {
-        int deleted = Math.min(k, left.length());
-        left.setLength(left.length() - deleted);
-        return deleted;
+        int del = Math.min(k, left.length());
+        left.delete(left.length() - del, left.length());
+        return del;
     }
-    
+
     public String cursorLeft(int k) {
-        int moves = Math.min(k, left.length());
-        for (int i = 0; i < moves; i++) {
-            right.append(left.charAt(left.length() - 1));
-            left.setLength(left.length() - 1);
+        for (int i = 0; i < k; ++i) {
+            if (left.length() == 0) {
+                break;
+            }
+            char c = left.charAt(left.length() - 1);
+            left.deleteCharAt(left.length() - 1);
+            right.append(c);
         }
-        return getLastChars();
+        return getLeft10();
     }
-    
+
     public String cursorRight(int k) {
-        int moves = Math.min(k, right.length());
-        for (int i = 0; i < moves; i++) {
-            left.append(right.charAt(right.length() - 1));
-            right.setLength(right.length() - 1);
+        for (int i = 0; i < k; ++i) {
+            if (right.length() == 0) {
+                break;
+            }
+            char c = right.charAt(right.length() - 1);
+            right.deleteCharAt(right.length() - 1);
+            left.append(c);
         }
-        return getLastChars();
-    }
-    
-    private String getLastChars() {
-        int len = Math.min(10, left.length());
-        return left.substring(left.length() - len);
+        return getLeft10();
     }
 }
 
